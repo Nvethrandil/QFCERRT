@@ -15,47 +15,70 @@ The planner works as simple as:
 4. RRT is run on the sampling set. Entries are removed from the set after successfull sampling, preventing re-sampling and increasing exploration speed.
 5. A path is returned as soon as it is found, otherwise returns -1.
 
-## Important parameters
-These are all input parameters to the planner:
+## How to use (example)
+Here follows some example code. Similiar setup can be found in [test.py](tests/test.py).
+### Example parameters
+```python
+# Load your map as .npy file, note that this results in X and Y axis flipping
+grid = np.load('YOUR_OCCUPANCYMAP_AS_NUMPY_ARRAY')
+# Start coordinates with flipped X/Y
+start = np.array(['START_Y_COORDINATE', 'START_X_COORDINATE'])
+# Goal coordinates with flipped X/Y 
+goal = np.array(['GOAL_Y_COORDINATE', 'GOAL_X_COORDINATE'])
+# Set maximum iterations for RRT
+iterations = 500
+# Flag to enable plotting mode or not, only used in code testing
+plot_enabled = False
+# Defines the n x n side of smallest cell in Quadtree. Depends on size of map.
+stepsize = 1 
+```
+**stepsize** is recommended to tune based on map size. 
+- Recommend trying 5-10 for smaller maps <100x100 and 10-50 for 1000x1000 for low obstacle density
+- Recommend trying 1-5 for smaller maps <100x100 and 5-20 for 1000x1000 for high obstacle density
+```python
+# Min.pref cells are 10x smallest size, Max.pref are 20x larger than Min.Pref
+cell_sizes = [10, 20]
+```
+**cell_sizes** is recommended to tune based on expected map obstacle density. 
+- Recommend trying [10, 20] for most cases
+- The more empty space exists the higher the upper cap has to be set
+- Similiar the lowest limit has to be small enough to not exclude most sampling options
+```python
+# Defines the % increase in search range if no neighbours are found (DEPRICATED) 
+search_radius_increment_percentage = 0.25
+# Amount of neighbours to find each time (ONLY USED IN RRT*)
+max_neighbour_found = 8
+# Extra size margin to all obstacles in occupancy map
+bdilation_multiplier = 2
+```
+### Execution of planner
+```python
+# Initialize the planner with all the information
+planner = QFCE_RRT(
+      grid, 
+      start, 
+      goal, 
+      iterations, 
+      stepsize, 
+      plot_enabled, 
+      search_radius_increment_percentage, 
+      max_neighbour_found, 
+      bdilation_multiplier, 
+      cell_sizes)
+# Perform the actual search
+path = planner.search()
+# path contains a list of [x,y] coordinates which then can be utilized for navigation
+```
 
- - map (np.ndarray): 
-    - The map to plan in as a numpy array
+### Results example plotted
 
- - start (np.ndarray): 
-    - The start position in map
-
- - goal (np.ndarray):
-    - The goal position in map
-
- - max_iterations (int): 
-    - Maximum iterations allowed for the RRT to run
-
- - stepdistance (int): 
-    - Step distance of RRT algorithm, now defines the root of the minimum area of cells allowed in quadtree
-
- - plot_enabled (bool):
-    - Flag to enable plotting mode or not (ONLY IN EDITOR TESTING)
-
- - search_radius_increment (float):
-    - The percentage of radius increments performed between each neighbour search (DEPRICATED)
-
- - max_neighbour_found (int): 
-    - Minimum neighbours to be found before stopping search, only applies after that many neighbours also exist (ONLY USED IN RRT*)
-
- - bdilation_multiplier (int): 
-    - Amount of pixels to bloat each object in map before planning. Acts as a safety margin.
-
- - cell_sizes (list): 
-    - Contains the minimum multiplier (min_multiplier) for preferred cells and the maximum multiplier (max_multiplier) of the maximum cells according to; 
-        - min_multiplier * minimum_cell_size -> minimum_cells_preferred  
-        - max_multiplier * minimum_cells_preferred  -> maximum_cells_preferred
-    - This approach prevents the algorithm from over-favouring regions around obstacles and provide safer paths, incorporating more larger cells.
+![This configuration has a chance of yielding the following random result on the given map in [test.py](tests/test.py).](https://github.com/Nvethrandil/QFCERRT/blob/main/demo.png)
 
 ## Tuning parameters
-Based on the map size it is run on, the **stepdistance** parameter has to be adjusted. Becuase this parameter defines the smallest possible quadtree cell instance, this should be larger than a single pixel in the map, otherwise no performance gain will be made, but can also not be too large, otherwise there will be no valid samplingpoints left. 
+-  Based on the map size it is run on, the **stepdistance** parameter has to be adjusted. Becuase this parameter defines the smallest possible quadtree cell instance, this should be larger than a single pixel in the map, otherwise no performance gain will be made, but can also not be too large, otherwise there will be no valid samplingpoints left. 
 In maps of high obstacle density, where the planner is anticipated to plan between many narrow obstacles, this value has to be small enough for at least 1 cell to fit between the minimum gap between two obstacles in which the planner shall plan in. Reversely, this value can be increased to decrease the likelyness of the planner to plan between clusters and rather prefer avoiding them altogether.
 
-Secondly the **bdilation_multiplier** should be taken note of as this parameter will alter the percieved map permanently for the planner and will make all obstacles by the specified amount nPixels larger in all dimensions. This can result in obstacle merging.
+- Secondly the **bdilation_multiplier** should be taken note of as this parameter will alter the percieved map permanently for the planner and will make all obstacles by the specified amount nPixels larger in all dimensions. This can result in obstacle merging.
 
 ## Issues
 
