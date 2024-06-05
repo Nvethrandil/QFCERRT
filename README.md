@@ -51,6 +51,8 @@ max_neighbour_found = 8
 # Extra size margin to all obstacles in occupancy map
 bdilation_multiplier = 2
 ```
+**bdilation_multiplier** should also be adjusted in reference to the map resolution and the safety margins of the desired vehicle. Here a uncertainty of 0.2m in a map of 0.1m/pixel would be accomodated with a **bdilation_multiplier** of 2.
+
 ### Execution of planner
 ```python
 # Initialize the planner with all the information
@@ -72,6 +74,7 @@ path = planner.search()
 
 ### Results example plotted
 This configuration has a chance of yielding the following random result on the given map in [test.py](qfcerrt_noot/tests/test.py).
+
 ![demo](https://github.com/Nvethrandil/QFCERRT/blob/main/demo.png)
 
 ## Tuning parameters
