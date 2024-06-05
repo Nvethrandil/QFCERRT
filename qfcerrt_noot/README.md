@@ -5,6 +5,7 @@ This approach currently prevents re-sampling to improve speed at the cost of inc
 
 *This branch still in development and contains a lot of methods which are currently not required by the planner*
 
+
 ## How the planner works
 The planner works as simple as:
 
