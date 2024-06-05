@@ -71,8 +71,8 @@ path = planner.search()
 ```
 
 ### Results example plotted
-
-![This configuration has a chance of yielding the following random result on the given map in [test.py](tests/test.py).](https://github.com/Nvethrandil/QFCERRT/blob/main/demo.png)
+This configuration has a chance of yielding the following random result on the given map in [test.py](tests/test.py).
+![demo](https://github.com/Nvethrandil/QFCERRT/blob/main/demo.png)
 
 ## Tuning parameters
 -  Based on the map size it is run on, the **stepdistance** parameter has to be adjusted. Becuase this parameter defines the smallest possible quadtree cell instance, this should be larger than a single pixel in the map, otherwise no performance gain will be made, but can also not be too large, otherwise there will be no valid samplingpoints left. 
