@@ -1,4 +1,4 @@
-# Quadtree-based Free-space Celldecomposition Enhanced RRT (QFCE-RRT) path planner
+# Quadtree-based Free-space Cell-decomposition Enhanced RRT (QFCE-RRT) path planner
 
 The planner is a novel approach in reducing computation-time by dividing the occupancy map into a grid of convex cells.
 This approach currently prevents re-sampling to improve speed at the cost of increased failure rate.
