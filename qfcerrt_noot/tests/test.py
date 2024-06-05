@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-__author__ = 'Noah Otte <nnvethrandil@gmail.com>'
+__author__ = 'Noah Otte <nvethrandil@gmail.com>'
 __version__= '1.0'
 __license__= 'MIT'
 
@@ -10,7 +10,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import time
-from qfcerrt_noot.QFCE_RRT import QFCERRT as planner
+from qfcerrt_noot.src.QFCE_RRT import QFCERRT as planner
 import os 
 filedir = os.path.dirname(os.path.abspath(__file__))
 test_map_file = os.path.join(filedir, 'test_map.npy')
@@ -32,9 +32,11 @@ no_path_found = -1
 cell_sizes = [10, 20]
 search_radius_increment_percentage = 0.25
 max_neighbour_found = 8
+
 rover_radius = 4 # pixels x 0.1m/pixels
 noise_margin = 2 # resolution is 0.1 -> 2x that
 minimum_lidar_distance = 9
+
 bdilation_multiplier = 2 #minimum_lidar_distance + noise_margin
 
 # Plot settings

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-__author__ = 'Noah Otte <nnvethrandil@gmail.com>'
+__author__ = 'Noah Otte <nvethrandil@gmail.com>'
 __version__= '1.0'
 __license__= 'MIT'
 
