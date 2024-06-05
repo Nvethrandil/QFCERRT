@@ -1,0 +1,23 @@
+[project]
+name = "qfcerrt_noot"
+version = "0.0.1"
+authors = [
+  { name="Noah Otte", email="nvethrandil@gmail.com" },
+]
+description = "A 2D-occupancygrid planner utilizing quadtree mapdecomposition and RRT. "
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies =[
+        "scipy",
+        "scikit-image",
+        "numpy",
+        "matplotlib"
+    ]
+[project.urls]
+Homepage = "https://github.com/Nvethrandil/rrt_stuff"
+Issues = "https://github.com/Nvethrandil/rrt_stuff/issues"
