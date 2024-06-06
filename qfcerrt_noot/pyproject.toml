@@ -16,7 +16,12 @@ dependencies =[
         "scipy",
         "scikit-image",
         "numpy",
-        "matplotlib"
+        "matplotlib",
+        "nav_msgs",
+        "rospy",
+        "roslib",
+        "numpy_ros",
+        "geometry_msgs"
     ]
 [project.urls]
 Homepage = "https://github.com/Nvethrandil/rrt_stuff"
