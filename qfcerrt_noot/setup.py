@@ -17,7 +17,11 @@ setup(
         'scipy',
         'scikit-image',
         'numpy',
-        'matplotlib'
+        'matplotlib',
+        'rospy',
+        'roslib',
+        'numpy-ros',
+        'rosmsg'
     ],
     classifiers = [
     "Programming Language :: Python :: 3",

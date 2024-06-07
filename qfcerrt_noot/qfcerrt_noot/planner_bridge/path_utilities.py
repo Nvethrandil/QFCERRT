@@ -55,7 +55,7 @@ def map2world(point, msg):
 def planner2world(path, occmap):
         world_path = []
         for p in path:
-                a = map2world([p[0], p[1]], occmap)
+                a = map2world([p[1], p[0]], occmap)
                 world_path.append(a)
         return world_path
 

@@ -4,6 +4,7 @@ __author__ = 'Noah Otte <nvethrandil@gmail.com>'
 __version__= '3.1'
 __license__= 'MIT'
 
+from typing import Tuple
 # ESSENTIAL Python libraries
 import numpy as np
 import random
@@ -56,8 +57,9 @@ class QFCERRT:
         """
         
         # to make obstacles bigger than they actually are; binary dilation
-        bdil_t1 = time.process_time() 
-        self.map = binary_dilation(map, iterations=bdilation_multiplier).astype(bool)
+        bdil_t1 = time.process_time()
+        self.bd_multi = bdilation_multiplier
+        self.map = binary_dilation(map, iterations=self.bd_multi).astype(bool)
         self.bdil_time =  time.process_time() - bdil_t1
         self.max_x = self.map.shape[0]
         self.max_y = self.map.shape[1]
@@ -140,7 +142,33 @@ class QFCERRT:
         t_empty = time.process_time()
         self.__processFreeSpace(self.map, self.qt_map)
         self.empty_time = time.process_time() - t_empty
-    
+        
+    def need2replan(self, new_position, new_map):
+        # Early exit
+        if not self.waypoints:
+            return True
+        
+        self.map = binary_dilation(new_map, iterations=self.bd_multi).astype(bool)
+        
+        temp_list = self.waypoints
+        temp_list.sort(key=lambda e: self.distance(e, new_position), reverse=False)
+        index = self.waypoints.index(temp_list[0])
+        del self.waypoints[0:index]
+        #self.waypoints.insert(0, new_position)
+        print("Waypoints length", len(self.waypoints))
+        modlist = self.waypoints
+        if self.distance(new_position, modlist[0]) > 0.5:
+            modlist.insert(0, new_position)
+        for i in range(len(modlist)-1):
+            p1 = modlist[i]
+            p2 = modlist[i]
+            if self.collision(p1, p2, round(self.distance(p1, p2))):
+                print("REPLANNING . . .")
+                return True
+            
+        self.waypoints = modlist
+        return False
+            
     def search(self) -> list:
         """
         A method which performs RRT-search
@@ -179,6 +207,7 @@ class QFCERRT:
                     self.goal.d_root = child.d_root + distance
                     self.retracePath(self.goal)
                     self.waypoints.insert(0, self.start)
+                    self.waypoints = self.bezier_tripples(self.waypoints, 30)
                     self.iterations_completed = i
                     self.search_time =  time.process_time() - searchtime_start
                     return self.waypoints
@@ -186,10 +215,11 @@ class QFCERRT:
         # Save parameters for failed search                
         self.iterations_completed = i
         self.search_time =  time.process_time() - searchtime_start
+        print("Goal not found. Iterations completed: ", i)
         # Return failure value -1
         return [-1]
     
-    def sampleRandomEmptyNeighbour(self) -> tuple[list, int, NodeOnTree]:
+    def sampleRandomEmptyNeighbour(self) -> Tuple[list, int, NodeOnTree]:
         
         parent = random.choice(self.node_collection)
         p = [parent.x, parent.y]
@@ -207,7 +237,7 @@ class QFCERRT:
         return sample, index, parent
 
     
-    def sampleClosest(self)-> tuple[list, int, NodeOnTree]:
+    def sampleClosest(self)-> Tuple[list, int, NodeOnTree]:
         
         parent = random.choice(self.node_collection)
         p = [parent.x, parent.y]
@@ -317,7 +347,7 @@ class QFCERRT:
             print("NO EMPTYS!") 
             
                     
-    def sampleFromEmptys(self) -> tuple[list, int]:
+    def sampleFromEmptys(self) -> Tuple[list, int]:
         """
         A method which returns a random sample from the set self.empty_cells based
         on the sampling probabilities contained in self.normalized_scores
@@ -374,7 +404,7 @@ class QFCERRT:
         plt.plot(xs, ys, 'r', linewidth=3, linestyle="-")
 
 
-    def parentFirstPointThen(self) -> tuple[list, int]:
+    def parentFirstPointThen(self) -> Tuple[list, int]:
         parent = random.choice(self.node_collection)
         angle = random.random()*2*np.pi
         x = self.stepDistance * np.cos(angle)
@@ -422,7 +452,7 @@ class QFCERRT:
         return neighbour_nodes
 
 
-    def __neighbourCount(self, p) -> tuple[float, list]:
+    def __neighbourCount(self, p) -> Tuple[float, list]:
         radius = self.stepDistance*0.99
         n = self.findNeighbours(p, radius)
         return len(n), n
