@@ -26,7 +26,7 @@ class QFCERRT:
     """
     A class used to compute a basic RRT search algorithm utilizing quadtree map tesselation
     """
-    def __init__(self, map: np.ndarray, start: np.ndarray, goal: np.ndarray, max_iterations: int, stepdistance: int, plot_enabled: bool, search_radius_increment: float, max_neighbour_found: int, bdilation_multiplier: int, cell_sizes: list):
+    def __init__(self, map: np.ndarray, start: np.ndarray, goal: np.ndarray, max_iterations: int, stepdistance: int, plot_enabled: bool, search_radius_increment: float, max_neighbour_found: int, bdilation_multiplier: int, cell_sizes: list, mode_select: int):
         """
         Initializes RRT algorithm
 
@@ -54,10 +54,15 @@ class QFCERRT:
                 min_cell_size = (map_width * map_height) / A
                 pref_cell_size = (map_width * map_height) / B
                 max_cell_size = C * pref_cell_size
+            mode_select (int):
+                0 - nothing is processed
+                1 - interpolate points to stepsize of ~1
+                2 - only smooth turns using bezier
         """
         
         # to make obstacles bigger than they actually are; binary dilation
         bdil_t1 = time.process_time()
+        self.mode = mode_select
         self.bd_multi = bdilation_multiplier
         self.map = binary_dilation(map, iterations=self.bd_multi).astype(bool)
         self.bdil_time =  time.process_time() - bdil_t1
@@ -207,8 +212,7 @@ class QFCERRT:
                     self.goal.d_root = child.d_root + distance
                     self.retracePath(self.goal)
                     self.waypoints.insert(0, self.start)
-                    #self.waypoints = self.bezier_tripples(self.waypoints, 30)
-                    #self.waypoints = self.step_by_step_interpolation(self.waypoints)
+                    self.apply_post_process
                     self.iterations_completed = i
                     self.search_time =  time.process_time() - searchtime_start
                     return self.waypoints
@@ -220,6 +224,19 @@ class QFCERRT:
         # Return failure value -1
         return [-1]
     
+    
+    def apply_post_process(self):
+        """
+        Performs post processing based on selected mode
+        """
+        if self.mode == 0:
+            pass
+        if self.mode == 1:
+            self.waypoints = self.step_by_step_interpolation(self.waypoints)
+        if self.mode == 2:
+            self.waypoints = self.bezier_tripples(self.waypoints, 30)
+    
+          
     def sampleRandomEmptyNeighbour(self) -> Tuple[list, int, NodeOnTree]:
         
         parent = random.choice(self.node_collection)
