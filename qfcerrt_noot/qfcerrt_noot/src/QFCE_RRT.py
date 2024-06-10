@@ -5,17 +5,16 @@ __version__= '3.1'
 __license__= 'MIT'
 
 from typing import Tuple
-# ESSENTIAL Python libraries
+import time
+# Essential python libraries
 import numpy as np
 import random
 # Libraries for plotting
 import matplotlib.pyplot as plt
-# Libraries for benchmark statistics
-import time
-# ESSENTIAL special libraries
+# Essential special libraries
 from skimage.measure import find_contours
 from scipy.ndimage import binary_dilation
-# ESSENTIAL custom imports
+# Essential custom imports
 from .QT import QuadTree as Quadtree
 from .QT import Circle as circle
 from .QT import Rectangle as rectangle
@@ -26,7 +25,18 @@ class QFCERRT:
     """
     A class used to compute a basic RRT search algorithm utilizing quadtree map tesselation
     """
-    def __init__(self, map: np.ndarray, start: np.ndarray, goal: np.ndarray, max_iterations: int, stepdistance: int, plot_enabled: bool, search_radius_increment: float, max_neighbour_found: int, bdilation_multiplier: int, cell_sizes: list, mode_select: int):
+    def __init__(self, map: np.ndarray, 
+                 start: np.ndarray, 
+                 goal: np.ndarray, 
+                 max_iterations: int, 
+                 stepdistance: int, 
+                 plot_enabled: bool, 
+                 search_radius_increment: float, 
+                 max_neighbour_found: int, 
+                 bdilation_multiplier: int, 
+                 cell_sizes: list, 
+                 mode_select: int
+                 ) -> None:
         """
         Initializes RRT algorithm
 
@@ -70,7 +80,7 @@ class QFCERRT:
         self.max_y = self.map.shape[1]
         self.map_center_x = self.max_x / 2
         self.map_center_y = self.max_y / 2
-        print("MAP DIM (planner): ", self.max_x, self.max_y)
+        print(f'Planner Message: recieved a {self.max_x}x{self.max_y} sized map.')
         # just a very high number as a starting reference for distance comparisons
         self.maxDistance = self.max_x * self.max_y
         # originally the stepdistance of algorithm, here it is the smallest cell resolution allowed
@@ -81,7 +91,6 @@ class QFCERRT:
         self.goal = NodeOnTree(goal[0], goal[1])
         self.tree.d_root = 0
         self.tree.d_parent = 0
-        
         self.node_collection = []
         self.waypoint_nodes = []
         self.node_collection.append(self.tree)
@@ -101,7 +110,7 @@ class QFCERRT:
         self.mapBound = rectangle(self.map_center_y, self.map_center_x, self.max_y / 2, self.max_x / 2)
         self.capacity = 4
         self.qt = Quadtree(self.mapBound, self.capacity)
-        # Add the start, the root, to the tree only
+        # add the start, the root, to the tree only
         self.qt.insert(point(self.tree.x, self.tree.y, self.tree))
         # quadtree subdivision and empty cell collection, this is for empty-space calculation of map 
         self.empty_cells = []
@@ -136,7 +145,7 @@ class QFCERRT:
         self.wp_col = 'ro'
         self.plot_col = 'go'
         self.qt_color = 'magenta'
-        self.info_string = f"Cells larger than {self.min_cell_preferred} are weighted {self.extra_cell_weight}x higher"
+        self.info_string = f"Planner Message: cells larger than {self.min_cell_preferred} are weighted {self.extra_cell_weight}x higher"
         # actually build the second quadtree on the obstacles for free-space calculation
         t1 =  time.process_time()
         bound = rectangle(x, y, square, square)
@@ -147,32 +156,7 @@ class QFCERRT:
         t_empty = time.process_time()
         self.__processFreeSpace(self.map, self.qt_map)
         self.empty_time = time.process_time() - t_empty
-        
-    def need2replan(self, new_position, new_map):
-        # Early exit
-        if not self.waypoints:
-            return True
-        
-        self.map = binary_dilation(new_map, iterations=self.bd_multi).astype(bool)
-        
-        temp_list = self.waypoints
-        temp_list.sort(key=lambda e: self.distance(e, new_position), reverse=False)
-        index = self.waypoints.index(temp_list[0])
-        del self.waypoints[0:index]
-        #self.waypoints.insert(0, new_position)
-        print("Waypoints length", len(self.waypoints))
-        modlist = self.waypoints
-        if self.distance(new_position, modlist[0]) > 0.5:
-            modlist.insert(0, new_position)
-        for i in range(len(modlist)-1):
-            p1 = modlist[i]
-            p2 = modlist[i]
-            if self.collision(p1, p2, round(self.distance(p1, p2))):
-                print("REPLANNING . . .")
-                return True
-            
-        self.waypoints = modlist
-        return False
+
             
     def search(self) -> list:
         """
@@ -184,29 +168,29 @@ class QFCERRT:
         """
         searchtime_start =  time.process_time()
         i = 0
-        # Early exit in case goal is in line-of-sight
+        # early exit in case goal is in line-of-sight
         if self.jackpot([self.tree.x, self.tree.y]) is True:
-            print("Goal at once.")
+            print(f'Planner Message: goal found at once')
             self.waypoints.insert(0, self.start)
             self.waypoints.append([self.goal.x, self.goal.y])
             self.iterations_completed = 0
             self.search_time =  time.process_time() - searchtime_start
             return self.waypoints
                     
-        # Start searching    
+        # start searching    
         while i < self.maxit and self.empty_cells:
             i += 1  
-            # Sample 
+            # perform sampling process
             sample, index = self.sampleFromEmptys()
             parent = self.sort_collection_for_nearest(sample)
             distance = round(self.distance([parent.x, parent.y], sample))
-            # Check if sample worked
+            # check if sample worked
             if not self.collision([parent.x, parent.y], sample, distance):
                 child = self.makeHeritage(parent, sample, index, distance)
-                # Check if sample found goal
+                # check if sample found goal
                 if self.jackpot(sample) is True:
-                    print("Goal found at: ", i)
-                    # Exit procedures for found goal
+                    print(f'Planner Message: goal found at {i} iterations')
+                    # exit procedures for found goal
                     self.adoptGoal(child)
                     self.goal.d_parent = self.distance(sample, [self.goal.x, self.goal.y])
                     self.goal.d_root = child.d_root + distance
@@ -217,15 +201,59 @@ class QFCERRT:
                     self.search_time =  time.process_time() - searchtime_start
                     return self.waypoints
                     
-        # Save parameters for failed search                
+        # save parameters for failed search                
         self.iterations_completed = i
         self.search_time =  time.process_time() - searchtime_start
-        print("Goal not found. Iterations completed: ", i)
-        # Return failure value -1
+        print(f'Planner Message: goal not found after {i} iterations complete')
+        # return failure value -1
         return [-1]
     
     
-    def apply_post_process(self):
+    def need2replan(self, new_position: list, new_map: np.ndarray) -> bool:
+        """
+        Check if the planner needs to perform replanning or not
+
+        Args:
+            new_position (list): 
+                The current position of the vehicle
+            new_map (np.ndarray):
+                The new map which might have changed from previous planning
+
+        Returns:
+            (bool):
+                True if replanning is necessary, False if not
+        """
+        # Early exit
+        if not self.waypoints:
+            return True
+        
+        # perform the same Binary Dilation as on the regular map
+        self.map = binary_dilation(new_map, iterations=self.bd_multi).astype(bool)
+        
+        # Determine the closest point in the path to the actual vehicles position
+        temp_list = self.waypoints
+        temp_list.sort(key=lambda e: self.distance(e, new_position), reverse=False)
+        index = self.waypoints.index(temp_list[0])
+        del self.waypoints[0:index]
+        print(f'Planner Message: {len(self.waypoints)} waypoints in current path.')
+        modlist = self.waypoints
+        
+        # If current position deviates more than 0.5 from expected
+        if self.distance(new_position, modlist[0]) > 0.5:
+            modlist.insert(0, new_position)
+        # Check collisions
+        for i in range(len(modlist)-1):
+            p1 = modlist[i]
+            p2 = modlist[i]
+            if self.collision(p1, p2, round(self.distance(p1, p2))):
+                print(f'Planner Message: replanning')
+                return True
+            
+        self.waypoints = modlist
+        return False
+    
+    
+    def apply_post_process(self) -> None:
         """
         Performs post processing based on selected mode
         """
@@ -308,7 +336,6 @@ class QFCERRT:
         points =[sample, [parent.x, parent.y]]
         while cp.parent:
             cp = cp.parent
-            #print("Appended: ", [cp.x, cp.y])
             points.append([cp.x, cp.y])
         points.append([self.tree.x, self.tree.y])
         return points
@@ -411,9 +438,6 @@ class QFCERRT:
 
 
     def plotWaypoints(self, path) -> None:
-        #for i in range(len(path)-1):
-            #plt.plot([path[i][0], path[i + 1][0]], [path[i][1], path[i + 1][1]], 'ro', markersize=10, linestyle="-")
-            #plt.pause(0.1)
         xs = []
         ys = []
         for p in self.waypoints:
@@ -919,6 +943,7 @@ class QFCERRT:
         curve.append(wp[-1])
         return curve
     
+    
     def step_by_step_interpolation(self, path: list) -> list:
         """
         Interpolates all given points into a series of close-to-ones
@@ -928,7 +953,7 @@ class QFCERRT:
                 A series of points given
 
         Returns:
-            list: 
+            (list): 
                 An interpolated list of points
         """
         curve = []
