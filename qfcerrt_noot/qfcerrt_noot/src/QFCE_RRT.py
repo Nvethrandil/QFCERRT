@@ -207,7 +207,8 @@ class QFCERRT:
                     self.goal.d_root = child.d_root + distance
                     self.retracePath(self.goal)
                     self.waypoints.insert(0, self.start)
-                    self.waypoints = self.bezier_tripples(self.waypoints, 30)
+                    #self.waypoints = self.bezier_tripples(self.waypoints, 30)
+                    #self.waypoints = self.step_by_step_interpolation(self.waypoints)
                     self.iterations_completed = i
                     self.search_time =  time.process_time() - searchtime_start
                     return self.waypoints
@@ -401,7 +402,7 @@ class QFCERRT:
         for p in self.waypoints:
             xs.append(p[0])
             ys.append(p[1])
-        plt.plot(xs, ys, 'r', linewidth=3, linestyle="-")
+        plt.plot(xs, ys, 'ro', linewidth=3, linestyle="-")
 
 
     def parentFirstPointThen(self) -> Tuple[list, int]:
@@ -899,5 +900,29 @@ class QFCERRT:
             b = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2]
             curve.extend([a, b])
         curve.append(wp[-1])
+        return curve
+    
+    def step_by_step_interpolation(self, path: list) -> list:
+        """
+        Interpolates all given points into a series of close-to-ones
+
+        Args:
+            path (list): 
+                A series of points given
+
+        Returns:
+            list: 
+                An interpolated list of points
+        """
+        curve = []
+        i = 1
+        for i in range(len(path)-1):
+            p1 = path[i]
+            p2 = path[i+1]
+            d = round(np.floor(self.distance(p1, p2)))
+            x_s = np.linspace(p1[0], p2[0], d)
+            y_s = np.linspace(p1[1], p2[1], d)
+            for j in range(len(x_s)):
+                curve.append([x_s[j], y_s[j]])
         return curve
 
