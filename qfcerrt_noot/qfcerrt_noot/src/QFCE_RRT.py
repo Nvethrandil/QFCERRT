@@ -231,16 +231,16 @@ class QFCERRT:
         self.map = binary_dilation(new_map, iterations=self.bd_multi).astype(bool)
         
         # Determine the closest point in the path to the actual vehicles position
-        temp_list = self.waypoints
+        '''temp_list = self.waypoints
         temp_list.sort(key=lambda e: self.distance(e, new_position), reverse=False)
         index = self.waypoints.index(temp_list[0])
         del self.waypoints[0:index]
-        print(f'Planner Message: {len(self.waypoints)} waypoints in current path.')
+        print(f'Planner Message: {len(self.waypoints)} waypoints in current path.')'''
         modlist = self.waypoints
         
         # If current position deviates more than 0.5 from expected
-        if self.distance(new_position, modlist[0]) > 0.5:
-            modlist.insert(0, new_position)
+        '''if self.distance(new_position, modlist[0]) > 0.5:
+            modlist.insert(0, new_position)'''
         # Check collisions
         for i in range(len(modlist)-1):
             p1 = modlist[i]
@@ -249,7 +249,7 @@ class QFCERRT:
                 print(f'Planner Message: replanning')
                 return True
             
-        self.waypoints = modlist
+        #self.waypoints = modlist
         return False
     
     
@@ -536,20 +536,17 @@ class QFCERRT:
         x = sample[0]
         y = sample[1]
         index = index_of_empty
-        '''if (x == self.goal.x) and (y == self.goal.y):
-            child = self.goal'''
-        #else: # create a new node
         child = NodeOnTree(x, y) 
         self.node_collection.append(child)
-            
         self.adoptChild(parent, child)
-        # Sort newly created node into Quadtree dataset
+        
+        # sort newly created node into Quadtree dataset
         self.qt.insert(point(child.x, child.y, child))
         
         child.d_parent = parent_distance
         child.d_root = parent.d_root + parent_distance
         
-        # Delete this successfull sample from Emptys to prevent re-sampling
+        # delete this successfull sample from Emptys to prevent re-sampling
         del self.empty_cells[index]
         del self.normalized_scores[index]
         del self.cell_scores[index]
@@ -587,36 +584,46 @@ class QFCERRT:
             (bool):
                 A flag which is true if collision occured, and false if not
         """
-        # Terminate early if leads into obstacle
-        if self.__pointInMap(end) > 0: #self.map[round(end[1]), round(end[0])]
+        # terminate early if leads into obstacle
+        if self.__pointInMap(end) > 0:
             return True
+        
         v_hat = self.__unitVector(start, end)
         point = np.array([0.0, 0.0])
+        
         for i in range(distance2check):
-            # Walk along the v_hat direction, in entire integers
+            # walk along the v_hat direction, in entire integers
             point[0] = round(start[0] + i * v_hat[0])
             point[1] = round(start[1] + i * v_hat[1])
 
+            # check if out-of-bounds for the map
             if point[0] >= self.max_y or point[1] >= self.max_x:
                 return True
-
-            if  self.__pointInMap(point) > 0:  # Obstacles are True in Map, free nodes are False
-                # self.map[round(point[1]), round(point[0])]
+            
+            # obstacles are True in Map, free nodes are False
+            if  self.__pointInMap(point) > 0:
                 return True
+            
         return False
 
 
     def __outOfBoundsCorrection(self, point) -> list:
-        if round(point[0]) >= self.max_y:  # Check X coord
+        # check X coord
+        if round(point[0]) >= self.max_y:  
             point[0] = self.max_y - 1
-
-        if round(point[1]) >= self.max_x:  # Check Y coord
+            
+        # check Y coord
+        if round(point[1]) >= self.max_x:  
             point[1] = self.max_x - 1
-        if round(point[0]) <= 0:  # Check X coord
+        
+        # check X coord
+        if round(point[0]) <= 0:  
             point[0] = 0
-
-        if round(point[1]) <= 0:  # Check Y coord
+            
+        # check Y coord
+        if round(point[1]) <= 0:
             point[1] = 0
+            
         return point
 
 
@@ -946,7 +953,7 @@ class QFCERRT:
     
     def step_by_step_interpolation(self, path: list) -> list:
         """
-        Interpolates all given points into a series of close-to-ones
+        Interpolates all given points into a series of close-to-three pixels distance apart
 
         Args:
             path (list): 
@@ -961,7 +968,8 @@ class QFCERRT:
         for i in range(len(path)-1):
             p1 = path[i]
             p2 = path[i+1]
-            d = round(np.floor(self.distance(p1, p2)))
+            # get the amount of 3-pixel steps the distance is dividable by
+            d = round(np.floor(self.distance(p1, p2) / 3))
             x_s = np.linspace(p1[0], p2[0], d)
             y_s = np.linspace(p1[1], p2[1], d)
             for j in range(len(x_s)):
