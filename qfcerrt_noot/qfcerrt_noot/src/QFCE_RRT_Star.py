@@ -27,9 +27,7 @@ class QFCERRTStar(QFCERRT):
                  goal: np.ndarray, 
                  max_iterations: int, 
                  stepdistance: int, 
-                 plot_enabled: bool, 
-                 neighbour_radius: int, 
-                 search_radius_increment: float, 
+                 plot_enabled: bool,
                  max_neighbour_found: int, 
                  bdilation_multiplier: int, 
                  cell_sizes: list, 
@@ -66,13 +64,12 @@ class QFCERRTStar(QFCERRT):
                 max_cell_size = C * pref_cell_size
         """
         
-        super().__init__(map, start, goal, max_iterations, stepdistance, plot_enabled, search_radius_increment, max_neighbour_found, bdilation_multiplier, cell_sizes, mode_select)
-        self.neighbour_radius = neighbour_radius 
+        super().__init__(map, start, goal, max_iterations, stepdistance, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode_select)
         self.best_distance = None
         # flag to keep track if the goal was found
         self.goalWasFound = False
 
-    def RRT_star_search(self):
+    def search(self):
         """
         A method to perform RRT* search utilizing quadtree map tesselation
 
@@ -129,6 +126,11 @@ class QFCERRTStar(QFCERRT):
 
         # exit procedures            
         if self.goalWasFound:
+            # last goal optimization
+            _ = self.sort_collection_for_nearest([self.goal.x, self.goal.y])
+            neighbours = self.node_collection[:self.max_neighbour_found]
+            self.__optimizeNeighbours(neighbours)
+            
             self.retracePath(self.goal)
             self.waypoints.insert(0, self.start)
             self.apply_post_process()

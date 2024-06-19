@@ -11,6 +11,7 @@ matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import time
 from qfcerrt_noot.src.QFCE_RRT import QFCERRT as planner
+from qfcerrt_noot.src.QFCE_RRT_Star import QFCERRTStar as planner_2
 import os 
 filedir = os.path.dirname(os.path.abspath(__file__))
 test_map_file = os.path.join(filedir, 'test_map.npy')
@@ -31,11 +32,13 @@ neighbour_radius = 40
 no_path_found = -1
 cell_sizes = [10, 20]
 search_radius_increment_percentage = 0.25
-max_neighbour_found = 8
+max_neighbour_found = 12
 
 rover_radius = 4 # pixels x 0.1m/pixels
 noise_margin = 2 # resolution is 0.1 -> 2x that
 minimum_lidar_distance = 9
+
+mode = 1 # which mode to operate in
 
 bdilation_multiplier = 2 #minimum_lidar_distance + noise_margin
 
@@ -57,7 +60,12 @@ plt.tight_layout()
 # Init RRT Algorithm
 tic = time.process_time() *1000
 
-rrt = planner(grid, start, goal, iterations, stepsize, plot_enabled, search_radius_increment_percentage, max_neighbour_found, bdilation_multiplier, cell_sizes)
+# RRT based
+#rrt = planner(grid, start, goal, iterations, stepsize, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode)
+#path = rrt.search()
+
+# RRT* based
+rrt = planner_2(grid, start, goal, iterations, stepsize, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode)
 path = rrt.search()
 
 toc = time.process_time()*1000
@@ -76,11 +84,11 @@ if len(path) > 1:
     sample_ratio = (1 - (rrt.start_number_of_emptys / free_pixels_in_map)) * 100
     print("Number of waypoints: ", wps)
     print("Path Distance (pixels): ", d)
-    print("Total runtime (ms): ", extime)
-    print("QuadTree Build-time (ms): ", qt_time)
+    print("Total runtime (s): ", extime)
+    print("QuadTree Build-time (s): ", qt_time)
     print("PFS time (ms): ", pfs_time)
-    print("Binary Dilation Time (ms): ", rrt.bdil_time)
-    print("Spent searching (ms): ", rrt.search_time)
+    print("Binary Dilation Time (s): ", rrt.bdil_time)
+    print("Spent searching (s): ", rrt.search_time)
     print("Minimum cell side (not squared): ", stepsize)
     print("Free pixels in map: ", free_pixels_in_map)
     print("Emptys: ", rrt.start_number_of_emptys)

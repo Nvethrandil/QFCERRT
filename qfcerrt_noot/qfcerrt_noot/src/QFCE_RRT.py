@@ -31,7 +31,6 @@ class QFCERRT:
                  max_iterations: int, 
                  stepdistance: int, 
                  plot_enabled: bool, 
-                 search_radius_increment: float, 
                  max_neighbour_found: int, 
                  bdilation_multiplier: int, 
                  cell_sizes: list, 
@@ -96,7 +95,6 @@ class QFCERRT:
         self.node_collection.append(self.tree)
         self.start = start
         # neighbour search settings
-        self.search_radius_increment = search_radius_increment
         self.max_neighbour_found = max_neighbour_found
         # runtime information
         self.waypoints = []
