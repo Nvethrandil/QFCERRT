@@ -46,22 +46,22 @@ class QFCERRTStar(QFCERRT):
             max_iterations (int):
                 Maximum iterations allowed
             stepdistance (int):
-                Step distance of RRT algorithm
+                Step distance of RRT algorithm, here used as area indicator of minimum quadtree cell area (stepdistance^2)
             plot_enabled (bool):
                 Flag to enable plotting mode or not
-            neighbour_radius (int):
-                The initial neighbour radius used for search
-            search_radius_increment (float):
-                The percentage of radius increments performed between each neighbour search
             max_neighbour_found (int):
                 Minimum neighbours to be found before stopping search, only applies after that many neighbours also exist
             bdilation_multiplier (int):
                 Amount of pixels to bloat each object in map
             cell_sizes (list):
-                Contains the divident of minimum cell size (A), preferred cell size (B) and max cell size multiplier (C) according to:
-                min_cell_size = (map_width * map_height) / A
-                pref_cell_size = (map_width * map_height) / B
-                max_cell_size = C * pref_cell_size
+                Contains the multiplier of preferred cell size and multiplier of preferred  max cell according to:
+                cell_size = [A, B]
+                pref_cell_size = (stepdistance * stepdistance) * A
+                max_cell_size = pref_cell_size * B
+            mode_select (int):
+                0 - nothing is processed
+                1 - interpolate points to stepsize of ~3
+                2 - only smooth turns using bezier
         """
         
         super().__init__(map, start, goal, max_iterations, stepdistance, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode_select)
