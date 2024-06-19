@@ -31,7 +31,8 @@ class QFCERRTStar(QFCERRT):
                  max_neighbour_found: int, 
                  bdilation_multiplier: int, 
                  cell_sizes: list, 
-                 mode_select: int
+                 mode_select: int,
+                 danger_zone: int
                  ):
         """
         Init method for RRT* class
@@ -62,9 +63,11 @@ class QFCERRTStar(QFCERRT):
                 0 - nothing is processed
                 1 - interpolate points to stepsize of ~3
                 2 - only smooth turns using bezier
+            danger_zone (int):
+                An integer distance (in pixels) at which detected collisions will trigger replanning
         """
         
-        super().__init__(map, start, goal, max_iterations, stepdistance, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode_select)
+        super().__init__(map, start, goal, max_iterations, stepdistance, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode_select, danger_zone)
         self.best_distance = None
         # flag to keep track if the goal was found
         self.goalWasFound = False

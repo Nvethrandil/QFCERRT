@@ -24,7 +24,7 @@ grid = np.load(test_map_file)
 cmap="binary"
 # Simulation settings
 start = np.array([9.0, 89.0])  #[15.0, 80.0]
-goal = np.array([69.0, 6.0])  # [90.0, 10.0] [35.0, 6.0]
+goal = np.array([71, 36])  # [69.0, 6.0] [90.0, 10.0] [35.0, 6.0]
 iterations = 500  # 1000
 stepsize = 1 # 50
 no_path_found = -1
@@ -39,6 +39,7 @@ noise_margin = 2 # resolution is 0.1 -> 2x that
 minimum_lidar_distance = 9
 
 mode = 1 # which mode to operate in
+danger_zone = 15 # replanning is triggered if collisions might occur this many pixels ahead
 
 bdilation_multiplier = 2 #minimum_lidar_distance + noise_margin
 
@@ -61,11 +62,11 @@ plt.tight_layout()
 tic = time.process_time() *1000
 
 # RRT based
-#rrt = planner(grid, start, goal, iterations, stepsize, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode)
+#rrt = planner(grid, start, goal, iterations, stepsize, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode, danger_zone)
 #path = rrt.search()
 
 # RRT* based
-rrt = planner_2(grid, start, goal, iterations, stepsize, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode)
+rrt = planner_2(grid, start, goal, iterations, stepsize, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode, danger_zone)
 path = rrt.search()
 
 toc = time.process_time()*1000

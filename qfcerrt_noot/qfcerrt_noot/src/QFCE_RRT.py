@@ -34,7 +34,8 @@ class QFCERRT:
                  max_neighbour_found: int, 
                  bdilation_multiplier: int, 
                  cell_sizes: list, 
-                 mode_select: int
+                 mode_select: int,
+                 danger_zone: int
                  ) -> None:
         """
         Initializes RRT algorithm
@@ -65,6 +66,8 @@ class QFCERRT:
                 0 - nothing is processed
                 1 - interpolate points to stepsize of ~3
                 2 - only smooth turns using bezier
+            danger_zone (int):
+                An integer distance (in pixels) at which detected collisions will trigger replanning
         """
         
         # to make obstacles bigger than they actually are; binary dilation
@@ -142,7 +145,7 @@ class QFCERRT:
         self.plot_col = 'go'
         self.qt_color = 'magenta'
         self.info_string = f"Planner Message: cells larger than {self.min_cell_preferred} are weighted {self.extra_cell_weight}x higher"
-        # actually build the second quadtree on the obstacles for free-space calculation
+        # actually build the quadtree on the obstacles for free-space calculation
         t1 =  time.process_time()
         bound = rectangle(x, y, square, square)
         self.qt_map = Quadtree(bound, 1)
@@ -152,6 +155,8 @@ class QFCERRT:
         t_empty = time.process_time()
         self.__processFreeSpace(self.map, self.qt_map)
         self.empty_time = time.process_time() - t_empty
+        # replanning settings
+        self.danger_zone = danger_zone
 
             
     def search(self) -> list:
@@ -226,7 +231,7 @@ class QFCERRT:
         # perform the same Binary Dilation as on the regular map
         self.map = binary_dilation(new_map, iterations=self.bd_multi).astype(bool)
         
-        # Determine the closest point in the path to the actual vehicles position
+        # Determine the closest point in the path to the actual vehicles position [DEPRICATED]
         '''temp_list = self.waypoints
         temp_list.sort(key=lambda e: self.distance(e, new_position), reverse=False)
         index = self.waypoints.index(temp_list[0])
@@ -234,16 +239,22 @@ class QFCERRT:
         print(f'Planner Message: {len(self.waypoints)} waypoints in current path.')'''
         modlist = self.waypoints
         
-        # If current position deviates more than 0.5 from expected
+        # If current position deviates more than 0.5 from expected [DEPRICATED]
         '''if self.distance(new_position, modlist[0]) > 0.5:
             modlist.insert(0, new_position)'''
+        
         # Check collisions
         for i in range(len(modlist)-1):
             p1 = modlist[i]
-            p2 = modlist[i]
-            if self.collision(p1, p2, round(self.distance(p1, p2))):
-                print(f'Planner Message: replanning')
-                return True
+            p2 = modlist[i+1]
+            vehicle_distance = round(self.distance(new_position, p2))
+            
+            # if the point to check is within the danger_zone
+            if vehicle_distance < self.danger_zone:
+                # if a collision occurs somewhere in that range
+                if self.collision(p1, p2, round(self.distance(p1, p2))):
+                    print(f'Planner Message: replanning')
+                    return True
             
         #self.waypoints = modlist
         return False
@@ -258,7 +269,8 @@ class QFCERRT:
         if self.mode == 1:
             self.waypoints = self.step_by_step_interpolation(self.waypoints)
         if self.mode == 2:
-            self.waypoints = self.bezier_tripples(self.waypoints, 30)
+            p = self.bezier_tripples(self.waypoints, 30)
+            self.waypoints = self.step_by_step_interpolation(p)
     
           
     def sampleRandomEmptyNeighbour(self) -> Tuple[list, int, NodeOnTree]:
@@ -895,10 +907,10 @@ class QFCERRT:
             (list):
                 A smoothed list of coordinates 
         """
-        # Double the waypoints in order to strengthen the control points for the Bezier
-        path = self.interpolate_waypoints(path)
+        # interpolate the waypoints in order to strengthen the control points for the Bezier
+        #path = self.step_by_step_interpolation(path)
         curve = []
-        t_values = np.linspace(0, 1, 10)
+        t_values = np.linspace(0, 1, 5)
         i = 1
         while i < len(path)-1:
             p2 = path[i]
@@ -922,7 +934,15 @@ class QFCERRT:
         #print(curve)
         return curve
     
-
+    def bezier_entire_curve(self, path):
+         #p = self.step_by_step_interpolation(path)
+         p = path
+         p_forttran =  np.asfortranarray(p)
+         t_values = np.linspace(0, 1, round(len(p)))
+         b_path = np.array([self.bezier_curve(p_forttran, t) for t in t_values])
+         return b_path
+     
+    
     def interpolate_waypoints(self, waypoints: list) -> list:
         """
         A method to add all middle-points of all points in the list.
