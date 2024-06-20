@@ -224,8 +224,11 @@ class QFCERRT:
             (bool):
                 True if replanning is necessary, False if not
         """
-        # Early exit
+        # Early exits
         if not self.waypoints:
+            return True
+        
+        if len(self.waypoints) == 1:
             return True
         
         # perform the same Binary Dilation as on the regular map
@@ -395,9 +398,9 @@ class QFCERRT:
                 self.normalized_scores.append(e / self.total_score)
             
             self.start_number_of_emptys = len(self.empty_cells)
-            print("EMPTYS: ", self.start_number_of_emptys)
+            print(f'Planner Message: planner has {self.start_number_of_emptys} cells to plan in')
         else:
-            print("NO EMPTYS!") 
+            print("Planner Message: no cells to plan in") 
             
                     
     def sampleFromEmptys(self) -> Tuple[list, int]:

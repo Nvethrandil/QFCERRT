@@ -100,7 +100,7 @@ class QFCERRTStar(QFCERRT):
 
         i = 0
         # do while still cells have not been sampled successfully or until maximum iterations are reached
-        while i <= self.maxit and len(self.empty_cells) > 1:
+        while i <= self.maxit and self.empty_cells:
             i +=1
             # sample a point and get its parent-candidate
             sample, index = self.sampleFromEmptys()
@@ -139,6 +139,7 @@ class QFCERRTStar(QFCERRT):
             self.apply_post_process()
         else:
             self.waypoints = [-1]
+            print(f'Planner Message: no goal found after {i} iterations and {len(self.empty_cells)} cells sampled')
         self.iterations_completed = i
         self.search_time =  time.process_time() - searchtime_start
         

@@ -25,7 +25,7 @@ cmap="binary"
 # Simulation settings
 start = np.array([9.0, 89.0])  #[15.0, 80.0]
 goal = np.array([71, 36])  # [69.0, 6.0] [90.0, 10.0] [35.0, 6.0]
-iterations = 500  # 1000
+iterations = 200  # 1000
 stepsize = 1 # 50
 no_path_found = -1
 neighbour_radius = 40
