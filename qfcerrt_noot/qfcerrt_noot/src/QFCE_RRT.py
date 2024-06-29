@@ -35,7 +35,8 @@ class QFCERRT:
                  bdilation_multiplier: int, 
                  cell_sizes: list, 
                  mode_select: int,
-                 danger_zone: int
+                 danger_zone: int,
+                 fov: int
                  ) -> None:
         """
         Initializes RRT algorithm
@@ -68,6 +69,8 @@ class QFCERRT:
                 2 - only smooth turns using bezier
             danger_zone (int):
                 An integer distance (in pixels) at which detected collisions will trigger replanning
+            fov (int):
+                The maximum turning angle which planne paths can have -> the max field-of-view of the randomized points
         """
         
         # to make obstacles bigger than they actually are; binary dilation
@@ -126,6 +129,7 @@ class QFCERRT:
             square = h
         # tuning settings
         [pref_min, pref_max] = cell_sizes
+        self.fov = (fov / 2) * np.pi / 180
         self.min_cell_allowed = stepdistance*stepdistance
         # cells at least this size have their sample-chance boosted
         self.min_cell_preferred = pref_min * self.min_cell_allowed
@@ -209,6 +213,60 @@ class QFCERRT:
         # return failure value -1
         return [-1]
     
+    def GB_FOV_sampler(self):
+        valid_angle = []     
+        while not valid_angle:
+            
+            direction_sample, index = self.sampleFromEmptys() 
+        
+            for node in self.node_collection:
+                # include root of tree every time
+                if self.within_FOV(direction_sample, node, self.fov):
+                    valid_angle.append(node)
+            
+        valid_angle.sort(key=lambda e: self.distance([e.x, e.y], direction_sample), reverse=False)
+        parent = valid_angle[0]
+        
+        sample = direction_sample
+        
+        return sample, parent, index
+    
+    def within_FOV(self, point, potential_parent_node, fov):
+        node = potential_parent_node
+        # include root of tree every time
+        if not node.parent:
+            return True
+        else:
+            # calculate the angle between 3 points
+            a = np.array(point)
+            b = np.array([node.x, node.y])
+            c = np.array([node.parent.x, node.parent.y])
+
+            ba = a - b
+            bc = c - b
+
+            cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+            angle = np.arccos(cosine_angle)
+            
+            # check if the points would be in range of the FOV
+            boundary = np.pi - fov
+            # determine angle to the point is goal-biased
+            ga = self.point2goalFOV(point, node)
+            if abs(angle) >= boundary and angle < ga + np.pi/2 and angle > ga - np.pi/2:
+                return True
+            return False
+        
+    def point2goalFOV(self, point, node):
+        # calculate the angle between 3 points
+        a = np.array([node.x, node.y])
+        b = np.array(point)
+        c = np.array([self.goal.x, self.goal.y])
+        ba = a - b
+        bc = c - b
+        cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+        angle = np.arccos(cosine_angle)
+        
+        return angle
     
     def need2replan(self, new_position: list, new_map: np.ndarray) -> bool:
         """

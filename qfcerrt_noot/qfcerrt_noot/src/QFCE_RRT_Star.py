@@ -32,7 +32,8 @@ class QFCERRTStar(QFCERRT):
                  bdilation_multiplier: int, 
                  cell_sizes: list, 
                  mode_select: int,
-                 danger_zone: int
+                 danger_zone: int,
+                 fov: int
                  ):
         """
         Init method for RRT* class
@@ -65,9 +66,23 @@ class QFCERRTStar(QFCERRT):
                 2 - only smooth turns using bezier
             danger_zone (int):
                 An integer distance (in pixels) at which detected collisions will trigger replanning
+            fov (int):
+                The maximum turning angle which planne paths can have -> the max field-of-view of the randomized points
         """
         
-        super().__init__(map, start, goal, max_iterations, stepdistance, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode_select, danger_zone)
+        super().__init__(map, 
+                        start,
+                        goal,
+                        max_iterations,
+                        stepdistance,
+                        plot_enabled,
+                        max_neighbour_found,
+                        bdilation_multiplier,
+                        cell_sizes,
+                        mode_select,
+                        danger_zone,
+                        fov
+                        )
         self.best_distance = None
         # flag to keep track if the goal was found
         self.goalWasFound = False
@@ -197,7 +212,7 @@ class QFCERRTStar(QFCERRT):
         new_distance = start_end_distance + end_root_distance
         collide = self.collision([potential_child.x, potential_child.y], [parent.x, parent.y], round(start_end_distance))
         
-        if new_distance < self.best_distance and not collide:
+        if new_distance < self.best_distance and not collide:# and self.within_FOV([potential_child.x, potential_child.y], parent, self.fov):
             self.best_distance = new_distance
             potential_child.d_root = new_distance
             potential_child.d_parent = start_end_distance
