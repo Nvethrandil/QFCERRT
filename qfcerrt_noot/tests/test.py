@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import time
 from qfcerrt_noot.src.QFCE_RRT import QFCERRT as planner
 from qfcerrt_noot.src.QFCE_RRT_Star import QFCERRTStar as planner_2
+from scipy.ndimage import binary_dilation, gaussian_filter
 import os 
 filedir = os.path.dirname(os.path.abspath(__file__))
 test_map_file = os.path.join(filedir, 'test_map.npy')
@@ -24,13 +25,13 @@ grid = np.load(test_map_file)
 cmap="binary"
 # Simulation settings
 start = np.array([9.0, 89.0])  #[15.0, 80.0]
-goal = np.array([71, 36])  # [69.0, 6.0] [90.0, 10.0] [35.0, 6.0]
-iterations = 200  # 1000
+goal = np.array([85.0, 44.0] )  # [71, 36] [69.0, 6.0] [90.0, 10.0] [35.0, 6.0] [23, 8]
+iterations = 1000  # 1000
 stepsize = 1 # 50
 no_path_found = -1
 neighbour_radius = 40
 no_path_found = -1
-cell_sizes = [10, 20]
+cell_sizes = [10, 100]
 search_radius_increment_percentage = 0.25
 max_neighbour_found = 12
 
@@ -41,14 +42,24 @@ minimum_lidar_distance = 9
 mode = 1 # which mode to operate in
 danger_zone = 15 # replanning is triggered if collisions might occur this many pixels ahead
 
-bdilation_multiplier = 2 #minimum_lidar_distance + noise_margin
-
+bdilation_multiplier = 4 #minimum_lidar_distance + noise_margin
+fov = 90
 # Plot settings
 fig = plt.figure("QFCE-RRT Test")
 matplotlib.rcParams.update({'font.size': 20})
 goalRegion = plt.Circle((goal[0], goal[1]), 3*stepsize, color='b', fill=False)
 startRegion = plt.Circle((start[0], start[1]), 3*stepsize, color='r', fill=False)
-plt.imshow(grid, cmap='binary')
+# GAUSS
+cost_h = 10
+std_div = 5
+gaussed_grid = binary_dilation(grid, iterations=bdilation_multiplier).astype(bool)
+gaussed_grid = np.where(gaussed_grid > 0, cost_h, grid)
+gaussed_grid = gaussian_filter(gaussed_grid, sigma=std_div, mode='wrap')
+
+boosted_grid = np.where(grid > 0, cost_h/2, grid)
+#show_grid = np.add(gaussed_grid, boosted_grid)
+show_grid = gaussed_grid
+plt.imshow(show_grid, cmap='plasma') #binary gray_r
 plt.plot(start[0], start[1], 'ro')
 plt.plot(goal[0], goal[1], 'bo')
 ax = fig.gca()
@@ -66,8 +77,8 @@ tic = time.process_time() *1000
 #path = rrt.search()
 
 # RRT* based
-rrt = planner_2(grid, start, goal, iterations, stepsize, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode, danger_zone)
-path = rrt.search()
+rrt = planner_2(grid, start, goal, iterations, stepsize, plot_enabled, max_neighbour_found, bdilation_multiplier, cell_sizes, mode, danger_zone, fov)
+path = rrt.search_rrtstar()
 
 toc = time.process_time()*1000
 rrt.plotAllPaths(rrt.tree)
@@ -98,7 +109,7 @@ else:
     rrt.plotAllPaths(rrt.goal)
     print("Goal not found")
 print("Number of iterations completed: ", rrt.getIterationsDone())
-m = f'QFCE-RRT Test'
+m = f'QFCE-RRT* with Costmap Test'
 plt.title(m)
 plt.show()
 

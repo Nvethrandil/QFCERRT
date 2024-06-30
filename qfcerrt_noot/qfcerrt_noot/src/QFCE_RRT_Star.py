@@ -87,7 +87,9 @@ class QFCERRTStar(QFCERRT):
         # flag to keep track if the goal was found
         self.goalWasFound = False
 
-    def search(self):
+        self.costmap = self.create_costmap() #GAUSS
+        
+    def search_rrtstar(self):
         """
         A method to perform RRT* search utilizing quadtree map tesselation
 
@@ -115,43 +117,50 @@ class QFCERRTStar(QFCERRT):
 
         i = 0
         # do while still cells have not been sampled successfully or until maximum iterations are reached
-        while i <= self.maxit and self.empty_cells:
+        while i <= self.maxit:# and self.empty_cells:
             i +=1
-            # sample a point and get its parent-candidate
-            sample, index = self.sampleFromEmptys()
-            parent = self.sort_collection_for_nearest(sample)
-            distance = round(self.distance([parent.x, parent.y], sample))
-            
-            # check if the pair worked, if so make a real node out of it and optimize
-            if not self.collision([parent.x, parent.y], sample, distance):
-                # declare the heritage between child and parent and find the childs neighbours
-                child = self.makeHeritage(parent, sample, index, distance)
-                neighbours =  self.node_collection[:self.max_neighbour_found]
-                
-                # if the goal was not found yet, check if it is found this time
-                if not self.goalWasFound:
-                    if self.jackpot(sample):
-                        print(f'Planner Message: goal found at {i} iterations')
-                        self.adoptGoal(child)
-                        self.goal.d_parent = self.distance(sample, [self.goal.x, self.goal.y])
-                        self.goal.d_root = child.d_root + distance
-                        neighbours.append(self.goal)
-                        
-                # optimize the neighbours found
-                if neighbours is not None:
-                    self.__optimizeNeighbours(neighbours)
+            print(i)
+            # if the goal was found and half the iterations remain, just optimize
+            if i > self.maxit/2 and self.goalWasFound:
+                self.optimize_random_cells()
+            else:
+                # sample a point and get its parent-candidate
+                #sample, index = self.sampleFromEmptys()
+                sample, parent, index, neighbours = self.GB_FOV_sampler()
+                #parent = self.sort_collection_for_nearest(sample)
+                weighted_d = round(self.weighted_distance([parent.x, parent.y], sample)) # GAUSS
+                distance = round(self.distance([parent.x, parent.y], sample)) # GAUSS
+                # check if the pair worked, if so make a real node out of it and optimize
+                if not self.collision([parent.x, parent.y], sample, distance):
+                    # declare the heritage between child and parent and find the childs neighbours
+                    child = self.makeHeritage(parent, sample, index, weighted_d)
+                    #neighbours =  self.node_collection[:self.max_neighbour_found]
+                    
+                    # if the goal was not found yet, check if it is found this time
+                    if not self.goalWasFound:
+                        if self.jackpot(sample):
+                            print(f'Planner Message: goal found at {i} iterations')
+                            self.adoptGoal(child)
+                            self.goal.d_parent = self.weighted_distance(sample, [self.goal.x, self.goal.y]) # GAUSS
+                            self.goal.d_root = child.d_root + weighted_d
+                            neighbours.append(self.goal)
+                            self.goalWasFound = True
+                                
+                    # optimize the neighbours found
+                    if neighbours is not None:
+                        self.__optimizeNeighbours(neighbours)
                     
 
         # exit procedures            
         if self.goalWasFound:
             # last goal optimization
-            _ = self.sort_collection_for_nearest([self.goal.x, self.goal.y])
-            neighbours = self.node_collection[:self.max_neighbour_found]
-            self.__optimizeNeighbours(neighbours)
-            
+            #_ = self.sort_collection_for_nearest([self.goal.x, self.goal.y])
+            # neighbours = self.node_collection[:self.max_neighbour_found]
+            #self.__optimizeNeighbours(neighbours)
+            self.cowabunga()
             self.retracePath(self.goal)
             self.waypoints.insert(0, self.start)
-            self.apply_post_process()
+            #self.apply_post_process()
         else:
             self.waypoints = [-1]
             print(f'Planner Message: no goal found after {i} iterations and {len(self.empty_cells)} cells sampled')
@@ -160,7 +169,20 @@ class QFCERRTStar(QFCERRT):
         
         # return waypoints
         return self.waypoints
-    
+    def cowabunga(self):
+        self.node_collection.sort(key=lambda e: self.weighted_distance([e.x, e.y], [self.goal.x, self.goal.y]), reverse=False)
+        the_best = self.node_collection[:self.max_neighbour_found]
+        self.__optimizeNeighbours(the_best)
+          
+            
+    def optimize_random_cells(self):
+        c = random.choice(self.node_collection)
+        self.node_collection.sort(key=lambda e: self.distance([c.x, c.y], [e.x, e.y]), reverse=False)
+        # self.distance([e.x, e.y], [c.x, c.y])
+        neighbours =  self.node_collection[:self.max_neighbour_found]
+        if neighbours is not None:
+            self.__optimizeNeighbours(neighbours)
+                
     def __updateHeritage(self, new_parent: NodeOnTree, old_parent: NodeOnTree, child: NodeOnTree):
         """
         A method which changes the parent for a given child node
@@ -207,12 +229,15 @@ class QFCERRTStar(QFCERRT):
             (bool):
                 A flag which is true if this was a better connection, and false if not
         """
-        start_end_distance = self.distance([potential_child.x, potential_child.y], [parent.x, parent.y])
+        start_end_distance = self.weighted_distance([potential_child.x, potential_child.y], [parent.x, parent.y]) #GAUSS
+        real_distance = self.distance([potential_child.x, potential_child.y], [parent.x, parent.y])
+        
         end_root_distance = parent.d_root
         new_distance = start_end_distance + end_root_distance
-        collide = self.collision([potential_child.x, potential_child.y], [parent.x, parent.y], round(start_end_distance))
         
-        if new_distance < self.best_distance and not collide:# and self.within_FOV([potential_child.x, potential_child.y], parent, self.fov):
+        collide = self.collision([potential_child.x, potential_child.y], [parent.x, parent.y], round(real_distance))
+        
+        if new_distance < self.best_distance and not collide and self.within_FOV([potential_child.x, potential_child.y], parent, self.fov):
             self.best_distance = new_distance
             potential_child.d_root = new_distance
             potential_child.d_parent = start_end_distance

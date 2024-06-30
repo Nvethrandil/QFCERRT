@@ -13,7 +13,7 @@ import random
 import matplotlib.pyplot as plt
 # Essential special libraries
 from skimage.measure import find_contours
-from scipy.ndimage import binary_dilation
+from scipy.ndimage import binary_dilation, gaussian_filter
 # Essential custom imports
 from .QT import QuadTree as Quadtree
 from .QT import Circle as circle
@@ -77,7 +77,7 @@ class QFCERRT:
         bdil_t1 = time.process_time()
         self.mode = mode_select
         self.bd_multi = bdilation_multiplier
-        self.map = binary_dilation(map, iterations=self.bd_multi).astype(bool)
+        self.map = map #binary_dilation(map, iterations=self.bd_multi).astype(bool)
         self.bdil_time =  time.process_time() - bdil_t1
         self.max_x = self.map.shape[0]
         self.max_y = self.map.shape[1]
@@ -146,7 +146,7 @@ class QFCERRT:
         self.colour_mode_2 = False
         self.plot_enabled = plot_enabled
         self.wp_col = 'ro'
-        self.plot_col = 'go'
+        self.plot_col = 'wo'
         self.qt_color = 'magenta'
         self.info_string = f"Planner Message: cells larger than {self.min_cell_preferred} are weighted {self.extra_cell_weight}x higher"
         # actually build the quadtree on the obstacles for free-space calculation
@@ -221,21 +221,24 @@ class QFCERRT:
         
             for node in self.node_collection:
                 # include root of tree every time
-                if self.within_FOV(direction_sample, node, self.fov):
+                if self.within_FOV(direction_sample, node, self.fov) and self.distance([node.x, node.y], direction_sample) < 2*self.max_size:
                     valid_angle.append(node)
             
-        valid_angle.sort(key=lambda e: self.distance([e.x, e.y], direction_sample), reverse=False)
+        valid_angle.sort(key=lambda e: self.weighted_distance([e.x, e.y], direction_sample), reverse=False)
         parent = valid_angle[0]
+        neighbours = valid_angle[1:]
+        sample = direction_sample #self.traveller([parent.x, parent.y], direction_sample)
         
-        sample = direction_sample
-        
-        return sample, parent, index
+        return sample, parent, index, neighbours
     
     def within_FOV(self, point, potential_parent_node, fov):
         node = potential_parent_node
         # include root of tree every time
-        if not node.parent:
+        if not node.parent and self.weighted_distance(point, [node.x, node.y]) < self.max_x: #OOGA BOOGA
             return True
+        
+        if not node.parent:
+            return False
         else:
             # calculate the angle between 3 points
             a = np.array(point)
@@ -267,6 +270,7 @@ class QFCERRT:
         angle = np.arccos(cosine_angle)
         
         return angle
+
     
     def need2replan(self, new_position: list, new_map: np.ndarray) -> bool:
         """
@@ -380,7 +384,7 @@ class QFCERRT:
         # because the only valid ever returned was the one which leads to a collision . . .
         
         p = point
-        self.node_collection.sort(key=lambda e: self.distance([e.x, e.y], p), reverse=False) 
+        self.node_collection.sort(key=lambda e: self.weighted_distance([e.x, e.y], p), reverse=False) #GAUSS
         return self.node_collection[0]
     
     
@@ -435,10 +439,12 @@ class QFCERRT:
         self.empty_cells.extend(new_cells)
         
         all_wh_values = []
+        
         # check if there even are empty cells
         if self.empty_cells:
             for e in self.empty_cells:
                 all_wh_values.append(e[2])
+            self.max_size = np.sqrt(max(all_wh_values))
             avg_score = round(np.mean(all_wh_values), 2)
             #print("Boosting above: ", avg_score)
         
@@ -457,6 +463,7 @@ class QFCERRT:
             
             self.start_number_of_emptys = len(self.empty_cells)
             print(f'Planner Message: planner has {self.start_number_of_emptys} cells to plan in')
+            
         else:
             print("Planner Message: no cells to plan in") 
             
@@ -472,7 +479,7 @@ class QFCERRT:
             index (int):
                 The index of the entry sampled in self.empty_cells list
         """
-        [[x, y, s]] = random.choices(self.empty_cells, self.normalized_scores)
+        [[x, y, s]] = random.choices(self.empty_cells)#, self.normalized_scores)
         index = self.empty_cells.index([x, y, s])
         sample = [x, y]
         return sample, index
@@ -604,7 +611,7 @@ class QFCERRT:
         """
         x = sample[0]
         y = sample[1]
-        index = index_of_empty
+        
         child = NodeOnTree(x, y) 
         self.node_collection.append(child)
         self.adoptChild(parent, child)
@@ -614,11 +621,14 @@ class QFCERRT:
         
         child.d_parent = parent_distance
         child.d_root = parent.d_root + parent_distance
-        
-        # delete this successfull sample from Emptys to prevent re-sampling
-        del self.empty_cells[index]
-        del self.normalized_scores[index]
-        del self.cell_scores[index]
+        index = index_of_empty
+        if index == -1:
+            return child
+        else:
+            # delete this successfull sample from Emptys to prevent re-sampling
+            del self.empty_cells[index]
+            del self.normalized_scores[index]
+            del self.cell_scores[index]
         
         return child
 
@@ -833,7 +843,7 @@ class QFCERRT:
         """
         #if self.distance(self.goal, point) <= self.stepDistance and not self.collision(self.goal, point, self.stepDistance):
         
-        if not self.collision([self.goal.x, self.goal.y], point, round(self.distance([self.goal.x, self.goal.y], point))):
+        if not self.collision([self.goal.x, self.goal.y], point, round(self.distance([self.goal.x, self.goal.y], point))) and self.within_FOV(point, self.goal, self.fov): #self.distance([self.goal.x, self.goal.y], point) <= 20:#
             return True
         return False
     
@@ -856,7 +866,7 @@ class QFCERRT:
         while current_parent.parent:
             self.numberOfWaypoints += 1
             point = np.array([current_parent.x, current_parent.y])
-            self.pathDistance += self.distance([current_parent.x, current_parent.y], self.waypoints[0])
+            self.pathDistance += self.weighted_distance([current_parent.x, current_parent.y], self.waypoints[0])
             self.waypoints.insert(0, point)
             current_parent = current_parent.parent
                 
@@ -1052,4 +1062,27 @@ class QFCERRT:
             for j in range(len(x_s)):
                 curve.append([x_s[j], y_s[j]])
         return curve
+    
+    def weighted_distance(self, start, end):
+        '''
+        Weighted function for Gaussed map, WORK IN PROGRESS
+        '''
+        d = round(np.floor(self.distance(start, end)))
+        x_s = np.linspace(start[0], end[0], d)
+        y_s = np.linspace(start[1], end[1], d)
+        d_weighted = d
+        for i in range(len(x_s)):
+            d_weighted += 30 * self.costmap[round(y_s[i]), round(x_s[i])]   
+        return d_weighted
+    
+    def create_costmap(self):
+        '''
+        Creates a weighted costmap through a Gaussian filter
+        '''
+        grid = binary_dilation(self.map, iterations=self.bd_multi).astype(bool) #self.map
+        cost_h = 10
+        std_div = 5
+        gaussed_grid = np.where(grid > 0, cost_h, grid)
+        gaussed_grid = gaussian_filter(gaussed_grid, sigma=std_div, mode='wrap')
+        return gaussed_grid
 
