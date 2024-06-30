@@ -160,7 +160,7 @@ class QFCERRTStar(QFCERRT):
             self.cowabunga()
             self.retracePath(self.goal)
             self.waypoints.insert(0, self.start)
-            #self.apply_post_process()
+            self.apply_post_process()
         else:
             self.waypoints = [-1]
             print(f'Planner Message: no goal found after {i} iterations and {len(self.empty_cells)} cells sampled')
