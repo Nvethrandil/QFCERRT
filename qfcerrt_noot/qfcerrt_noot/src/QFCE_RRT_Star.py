@@ -148,6 +148,8 @@ class QFCERRTStar(QFCERRT):
                                 
                     # optimize the neighbours found
                     if neighbours is not None:
+                        #if self.goalWasFound:
+                        #    neighbours.append(self.goal)
                         self.__optimizeNeighbours(neighbours)
                     
 
@@ -170,9 +172,18 @@ class QFCERRTStar(QFCERRT):
         # return waypoints
         return self.waypoints
     def cowabunga(self):
-        self.node_collection.sort(key=lambda e: self.weighted_distance([e.x, e.y], [self.goal.x, self.goal.y]), reverse=False)
-        the_best = self.node_collection[:self.max_neighbour_found]
-        self.__optimizeNeighbours(the_best)
+        #for n in self.node_collection:
+         #   if self.weighted_distance([n.x, n.y], [self.goal.x, self.goal.y]) < 
+        #self.node_collection.sort(key=lambda e: self.weighted_distance([e.x, e.y], [self.goal.x, self.goal.y]), reverse=False)
+        #the_best = self.node_collection[:self.max_neighbour_found]
+        #self.__optimizeNeighbours(the_best)
+        self.best_distance = self.goal.d_root #self.__distance2Root(node)
+        self.node_collection.sort(key=lambda e: self.distance([e.x, e.y], [self.goal.x, self.goal.y]), reverse=False)
+        subset = self.node_collection[:self.max_neighbour_found]
+        node = self.goal
+        for subset_node in subset:
+            if self.__isBetterDistance(node, subset_node):
+                self.__updateHeritage(subset_node, node.parent, node)
           
             
     def optimize_random_cells(self):

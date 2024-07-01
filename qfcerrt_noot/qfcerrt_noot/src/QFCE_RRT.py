@@ -152,7 +152,19 @@ class QFCERRT:
         # actually build the quadtree on the obstacles for free-space calculation
         t1 =  time.process_time()
         bound = rectangle(x, y, square, square)
-        self.qt_map = Quadtree(bound, 1)
+        bound2 = rectangle(self.map_center_y, self.map_center_x, self.max_y / 2 -1, self.max_x / 2 -1)
+
+        self.qt_map = Quadtree(bound2, 1)
+        # add the goal for many viable sampling points
+        #self.qt_map.insert(point(self.goal.y, self.goal.x, None))
+        '''self.qt_map.insert(point(self.goal.y +1, self.goal.x, None))
+        self.qt_map.insert(point(self.goal.y -1, self.goal.x, None))
+        self.qt_map.insert(point(self.goal.y, self.goal.x +1, None)) 
+        self.qt_map.insert(point(self.goal.y, self.goal.x -1, None))  
+        self.qt_map.insert(point(self.goal.y +1, self.goal.x+1, None))
+        self.qt_map.insert(point(self.goal.y -1, self.goal.x-1, None))
+        self.qt_map.insert(point(self.goal.y-1, self.goal.x +1, None)) 
+        self.qt_map.insert(point(self.goal.y+1, self.goal.x -1, None)) '''
         # keep the time it took for computation reference
         self.quadtree_time = time.process_time() - t1
         # retrieve the actual free space cells in quadtree
@@ -334,7 +346,7 @@ class QFCERRT:
         if self.mode == 1:
             self.waypoints = self.step_by_step_interpolation(self.waypoints)
         if self.mode == 2:
-            p = self.bezier_tripples(self.waypoints, 30)
+            p = self.bezier_tripples(self.waypoints, 10)
             self.waypoints = self.step_by_step_interpolation(p)
     
           
@@ -434,7 +446,7 @@ class QFCERRT:
         for b in boundries:
             for p in b:
                 self.qt_map.insert(point(p[0], p[1], None))
-                
+             
         new_cells = self.__findEmpty(qt)
         self.empty_cells.extend(new_cells)
         
@@ -910,7 +922,7 @@ class QFCERRT:
                 '''
                 Statement excludes cells with certain conditions like too small or suspiciously large cells
                 '''
-                if not self.__pointInMap([y, x]) and w*h > self.min_cell_allowed and w*h < self.max_cell_preferred: #and w >= self.stepDistance
+                if self.valid_empty(x, y, w, h): #and w >= self.stepDistance
                     
                     empty.append([y, x, w*h])
                     
@@ -934,6 +946,11 @@ class QFCERRT:
                 self.__enhance(cell.southeast, empty)
                 self.__enhance(cell.southwest, empty)
 
+    def valid_empty(self, x, y, w, h):
+        if not self.__pointInMap([y, x]) and w*h > self.min_cell_allowed and w*h < self.max_cell_preferred:
+            return True
+        else:
+           return False
 
     def bezier_curve(self, points: np.ndarray, t: float) -> list:
         """
@@ -1056,7 +1073,7 @@ class QFCERRT:
             p1 = path[i]
             p2 = path[i+1]
             # get the amount of 3-pixel steps the distance is dividable by
-            d = round(np.floor(self.distance(p1, p2) / 3))
+            d = round(np.floor(self.distance(p1, p2) / 2))
             x_s = np.linspace(p1[0], p2[0], d)
             y_s = np.linspace(p1[1], p2[1], d)
             for j in range(len(x_s)):
@@ -1068,12 +1085,18 @@ class QFCERRT:
         Weighted function for Gaussed map, WORK IN PROGRESS
         '''
         d = round(np.floor(self.distance(start, end)))
-        x_s = np.linspace(start[0], end[0], d)
-        y_s = np.linspace(start[1], end[1], d)
         d_weighted = d
-        for i in range(len(x_s)):
-            d_weighted += 30 * self.costmap[round(y_s[i]), round(x_s[i])]   
-        return d_weighted
+        if d > 1:
+            x_s = np.linspace(start[0], end[0], d)
+            y_s = np.linspace(start[1], end[1], d)
+            
+            for i in range(len(x_s)):
+                d_weighted += 100 * self.costmap[round(y_s[i]), round(x_s[i])]   
+            return d_weighted
+        else:
+            # just add the middle point cost
+            d_weighted += 100 * self.costmap[round((start[1] + end[1])/2), round((start[0] + end[0])/2)]
+            return d_weighted
     
     def create_costmap(self):
         '''

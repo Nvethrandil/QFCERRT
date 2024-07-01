@@ -15,7 +15,7 @@ from qfcerrt_noot.src.QFCE_RRT_Star import QFCERRTStar as planner_2
 from scipy.ndimage import binary_dilation, gaussian_filter
 import os 
 filedir = os.path.dirname(os.path.abspath(__file__))
-test_map_file = os.path.join(filedir, 'test_map.npy')
+test_map_file = os.path.join(filedir, 'test_map2.npy')
 
 plot_enabled = True
 
@@ -24,10 +24,12 @@ plot_enabled = True
 grid = np.load(test_map_file)
 cmap="binary"
 # Simulation settings
-start = np.array([9.0, 89.0])  #[15.0, 80.0]
-goal = np.array([85.0, 44.0] )  # [71, 36] [69.0, 6.0] [90.0, 10.0] [35.0, 6.0] [23, 8]
+start = np.array([40.0, 3.0])  #[15.0, 80.0]
+goal = np.array([40.0, 67.0])
+#start = np.array([9.0, 89.0])  #[15.0, 80.0]
+#goal = np.array([76.0, 4.0])  # [71, 36] [69.0, 6.0] [90.0, 10.0] [35.0, 6.0] [23, 8] [85.0, 44.0]
 iterations = 1000  # 1000
-stepsize = 1 # 50
+stepsize = 0.5 # 50
 no_path_found = -1
 neighbour_radius = 40
 no_path_found = -1
@@ -39,7 +41,7 @@ rover_radius = 4 # pixels x 0.1m/pixels
 noise_margin = 2 # resolution is 0.1 -> 2x that
 minimum_lidar_distance = 9
 
-mode = 1 # which mode to operate in
+mode = 2 # which mode to operate in
 danger_zone = 15 # replanning is triggered if collisions might occur this many pixels ahead
 
 bdilation_multiplier = 4 #minimum_lidar_distance + noise_margin
