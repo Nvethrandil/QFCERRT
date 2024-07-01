@@ -14,6 +14,8 @@ import matplotlib.pyplot as plt
 # Essential special libraries
 from skimage.measure import find_contours
 from scipy.ndimage import binary_dilation, gaussian_filter
+from scipy.interpolate import CubicSpline, interp1d
+
 # Essential custom imports
 from .QT import QuadTree as Quadtree
 from .QT import Circle as circle
@@ -259,9 +261,11 @@ class QFCERRT:
 
             ba = a - b
             bc = c - b
-
-            cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-            angle = np.arccos(cosine_angle)
+            try:
+                cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+                angle = np.arccos(cosine_angle)
+            except:
+                return False
             
             # check if the points would be in range of the FOV
             boundary = np.pi - fov
@@ -347,9 +351,45 @@ class QFCERRT:
             self.waypoints = self.step_by_step_interpolation(self.waypoints)
         if self.mode == 2:
             p = self.bezier_tripples(self.waypoints, 10)
+            #p = self.some_spline_chad(self.waypoints)
             self.waypoints = self.step_by_step_interpolation(p)
     
-          
+    def some_spline_chad(self, path):
+        '''
+        Parametrize x and y over an imaginary third variable, imaginary_time, in order to run 2 interpolations over that 
+        linearly increasing variable and then combine the x and y from the results to the final curve,
+        which then does not have to be linearly increasing but can be non-monotonic
+        '''
+        #path = self.interpolate_linearly(path)
+        x_s = []
+        y_s = []
+        for p in path:
+            x_s.append(p[0])
+            y_s.append(p[1])
+            
+        imaginary_time = np.linspace(0,1, len(x_s))
+        r = path
+        curve = CubicSpline(imaginary_time, r, axis=0, bc_type='clamped') #not-a-knot
+        s2g = round(np.floor(self.distance([self.tree.x, self.tree.y], [self.goal.x, self.goal.y]) / 2))
+        gd = s2g # determines the amount of points in the spline
+        t = np.linspace(np.min(imaginary_time),np.max(imaginary_time),gd)
+        r = curve(t)
+        return r
+    def some_other_spline_chad(self, path):
+        x_s = []
+        y_s = []
+        for p in path:
+            x_s.append(p[0])
+            y_s.append(p[1])
+            
+        imaginary_time = np.linspace(0,1, len(x_s))
+        r = path
+        s2g = round(np.floor(self.distance([self.tree.x, self.tree.y], [self.goal.x, self.goal.y]) / 2))
+        curve = interp1d(imaginary_time, r, kind='quadratic', axis=0)
+        t = np.linspace(np.min(imaginary_time),np.max(imaginary_time),s2g)
+        r = curve(t)
+        return r
+       
     def sampleRandomEmptyNeighbour(self) -> Tuple[list, int, NodeOnTree]:
         
         parent = random.choice(self.node_collection)
@@ -1073,11 +1113,15 @@ class QFCERRT:
             p1 = path[i]
             p2 = path[i+1]
             # get the amount of 3-pixel steps the distance is dividable by
-            d = round(np.floor(self.distance(p1, p2) / 2))
-            x_s = np.linspace(p1[0], p2[0], d)
-            y_s = np.linspace(p1[1], p2[1], d)
-            for j in range(len(x_s)):
-                curve.append([x_s[j], y_s[j]])
+            d = round(np.floor(self.distance(p1, p2)/3))
+            if d < 3:
+                #pass
+                curve.append([p1[0], p1[1]])
+            else:
+                x_s = np.linspace(p1[0], p2[0], d)
+                y_s = np.linspace(p1[1], p2[1], d)
+                for j in range(len(x_s)):
+                    curve.append([x_s[j], y_s[j]])
         return curve
     
     def weighted_distance(self, start, end):
@@ -1095,7 +1139,7 @@ class QFCERRT:
             return d_weighted
         else:
             # just add the middle point cost
-            d_weighted += 100 * self.costmap[round((start[1] + end[1])/2), round((start[0] + end[0])/2)]
+            d_weighted += 50 * self.costmap[round((start[1] + end[1])/2), round((start[0] + end[0])/2)]
             return d_weighted
     
     def create_costmap(self):

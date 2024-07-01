@@ -148,8 +148,8 @@ class QFCERRTStar(QFCERRT):
                                 
                     # optimize the neighbours found
                     if neighbours is not None:
-                        #if self.goalWasFound:
-                        #    neighbours.append(self.goal)
+                        if self.goalWasFound:
+                            neighbours.append(self.goal)
                         self.__optimizeNeighbours(neighbours)
                     
 
@@ -179,7 +179,7 @@ class QFCERRTStar(QFCERRT):
         #self.__optimizeNeighbours(the_best)
         self.best_distance = self.goal.d_root #self.__distance2Root(node)
         self.node_collection.sort(key=lambda e: self.distance([e.x, e.y], [self.goal.x, self.goal.y]), reverse=False)
-        subset = self.node_collection[:self.max_neighbour_found]
+        subset = self.node_collection
         node = self.goal
         for subset_node in subset:
             if self.__isBetterDistance(node, subset_node):
