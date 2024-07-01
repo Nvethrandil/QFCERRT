@@ -28,7 +28,7 @@ start = np.array([40.0, 3.0])  #[15.0, 80.0]
 goal = np.array([40.0, 67.0])
 #start = np.array([9.0, 89.0])  #[15.0, 80.0]
 #goal = np.array([76.0, 4.0])  # [71, 36] [69.0, 6.0] [90.0, 10.0] [35.0, 6.0] [23, 8] [85.0, 44.0]
-iterations = 1000  # 1000
+iterations = 500  # 1000
 stepsize = 1 # 50
 no_path_found = -1
 neighbour_radius = 40
@@ -44,7 +44,8 @@ minimum_lidar_distance = 9
 mode = 2 # which mode to operate in
 danger_zone = 15 # replanning is triggered if collisions might occur this many pixels ahead
 
-bdilation_multiplier = 4 #minimum_lidar_distance + noise_margin
+bdilation_multiplier =5  #minimum_lidar_distance + noise_margin
+
 fov = 90
 # Plot settings
 fig = plt.figure("QFCE-RRT Test")

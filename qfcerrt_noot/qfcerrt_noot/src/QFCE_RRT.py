@@ -261,8 +261,8 @@ class QFCERRT:
 
             ba = a - b
             bc = c - b
+            cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
             try:
-                cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
                 angle = np.arccos(cosine_angle)
             except:
                 return False
@@ -271,6 +271,8 @@ class QFCERRT:
             boundary = np.pi - fov
             # determine angle to the point is goal-biased
             ga = self.point2goalFOV(point, node)
+            if ga == -1:
+                return True
             if abs(angle) >= boundary and angle < ga + np.pi/2 and angle > ga - np.pi/2:
                 return True
             return False
@@ -282,8 +284,11 @@ class QFCERRT:
         c = np.array([self.goal.x, self.goal.y])
         ba = a - b
         bc = c - b
-        cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-        angle = np.arccos(cosine_angle)
+        try:
+            cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+            angle = np.arccos(cosine_angle)
+        except:
+            return -1
         
         return angle
 
@@ -350,9 +355,9 @@ class QFCERRT:
         if self.mode == 1:
             self.waypoints = self.step_by_step_interpolation(self.waypoints)
         if self.mode == 2:
-            p = self.bezier_tripples(self.waypoints, 10)
-            #p = self.some_spline_chad(self.waypoints)
-            self.waypoints = self.step_by_step_interpolation(p)
+            #p = self.bezier_tripples(self.waypoints, 10)
+            p = self.some_spline_chad(self.waypoints)
+            self.waypoints = p #self.step_by_step_interpolation(p)
     
     def some_spline_chad(self, path):
         '''
@@ -1130,16 +1135,17 @@ class QFCERRT:
         '''
         d = round(np.floor(self.distance(start, end)))
         d_weighted = d
+        cost_multiplier = 50
         if d > 1:
             x_s = np.linspace(start[0], end[0], d)
             y_s = np.linspace(start[1], end[1], d)
             
             for i in range(len(x_s)):
-                d_weighted += 100 * self.costmap[round(y_s[i]), round(x_s[i])]   
+                d_weighted += cost_multiplier * self.costmap[round(y_s[i]), round(x_s[i])]   
             return d_weighted
         else:
             # just add the middle point cost
-            d_weighted += 50 * self.costmap[round((start[1] + end[1])/2), round((start[0] + end[0])/2)]
+            d_weighted += cost_multiplier * self.costmap[round((start[1] + end[1])/2), round((start[0] + end[0])/2)]
             return d_weighted
     
     def create_costmap(self):

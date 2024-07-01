@@ -143,7 +143,6 @@ class QFCERRTStar(QFCERRT):
                             self.adoptGoal(child)
                             self.goal.d_parent = self.weighted_distance(sample, [self.goal.x, self.goal.y]) # GAUSS
                             self.goal.d_root = child.d_root + weighted_d
-                            neighbours.append(self.goal)
                             self.goalWasFound = True
                                 
                     # optimize the neighbours found
@@ -178,7 +177,7 @@ class QFCERRTStar(QFCERRT):
         #the_best = self.node_collection[:self.max_neighbour_found]
         #self.__optimizeNeighbours(the_best)
         self.best_distance = self.goal.d_root #self.__distance2Root(node)
-        self.node_collection.sort(key=lambda e: self.distance([e.x, e.y], [self.goal.x, self.goal.y]), reverse=False)
+        self.node_collection.sort(key=lambda e: self.weighted_distance([e.x, e.y], [self.goal.x, self.goal.y]), reverse=False)
         subset = self.node_collection
         node = self.goal
         for subset_node in subset:
