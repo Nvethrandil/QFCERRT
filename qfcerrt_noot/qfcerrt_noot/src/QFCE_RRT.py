@@ -27,15 +27,15 @@ class QFCERRT:
     """
     A class used to compute a basic RRT search algorithm utilizing quadtree map tesselation
     """
-    def __init__(self, map: np.ndarray, 
-                 start: np.ndarray, 
-                 goal: np.ndarray, 
-                 max_iterations: int, 
-                 stepdistance: int, 
-                 plot_enabled: bool, 
-                 max_neighbour_found: int, 
-                 bdilation_multiplier: int, 
-                 cell_sizes: list, 
+    def __init__(self, map: np.ndarray,
+                 start: np.ndarray,
+                 goal: np.ndarray,
+                 max_iterations: int,
+                 stepdistance: int,
+                 plot_enabled: bool,
+                 max_neighbour_found: int,
+                 bdilation_multiplier: int,
+                 cell_sizes: list,
                  mode_select: int,
                  danger_zone: int,
                  fov: int
@@ -44,9 +44,9 @@ class QFCERRT:
         Initializes RRT algorithm
 
         Args:
-            map (np.ndarray): 
+            map (np.ndarray):
                 The map to plan in as a numpy array
-            start (np.ndarray): 
+            start (np.ndarray):
                 The start position in map
             goal (np.ndarray):
                 The goal position in map
@@ -74,12 +74,12 @@ class QFCERRT:
             fov (int):
                 The maximum turning angle which planne paths can have -> the max field-of-view of the randomized points
         """
-        
+
         # to make obstacles bigger than they actually are; binary dilation
         bdil_t1 = time.process_time()
         self.mode = mode_select
         self.bd_multi = bdilation_multiplier
-        self.map = map #binary_dilation(map, iterations=self.bd_multi).astype(bool)
+        self.map = binary_dilation(map, iterations=self.bd_multi).astype(bool)
         self.bdil_time =  time.process_time() - bdil_t1
         self.max_x = self.map.shape[0]
         self.max_y = self.map.shape[1]
@@ -89,7 +89,7 @@ class QFCERRT:
         # just a very high number as a starting reference for distance comparisons
         self.maxDistance = self.max_x * self.max_y
         # originally the stepdistance of algorithm, here it is the smallest cell resolution allowed
-        self.stepDistance = stepdistance 
+        self.stepDistance = stepdistance
         self.maxit = max_iterations
         # tree settings and data
         self.tree = NodeOnTree(start[0], start[1])
@@ -116,15 +116,15 @@ class QFCERRT:
         self.qt = Quadtree(self.mapBound, self.capacity)
         # add the start, the root, to the tree only
         self.qt.insert(point(self.tree.x, self.tree.y, self.tree))
-        # quadtree subdivision and empty cell collection, this is for empty-space calculation of map 
+        # quadtree subdivision and empty cell collection, this is for empty-space calculation of map
         self.empty_cells = []
         self.cell_scores = []
         self.normalized_scores = []
         # create boundary box containing initial start and goal to limit quadtree sampler
         y = (self.goal.x + self.tree.x) / 2
         x = (self.goal.y + self.tree.y) / 2
-        w = abs(self.goal.x - self.tree.x) 
-        h = abs(self.goal.y - self.tree.y) 
+        w = abs(self.goal.x - self.tree.x)
+        h = abs(self.goal.y - self.tree.y)
         if w > h:
             square = w
         else:
@@ -138,7 +138,7 @@ class QFCERRT:
         # largest cells size allowed, dont't count above this size
         self.max_cell_preferred = pref_max * self.min_cell_preferred
         # bonus multiplier for cells larger than min_cell_size
-        self.extra_cell_weight = 5 
+        self.extra_cell_weight = 5
         # benchmark data
         self.iterations_completed = 0
         self.pathDistance = 0
@@ -161,11 +161,11 @@ class QFCERRT:
         #self.qt_map.insert(point(self.goal.y, self.goal.x, None))
         '''self.qt_map.insert(point(self.goal.y +1, self.goal.x, None))
         self.qt_map.insert(point(self.goal.y -1, self.goal.x, None))
-        self.qt_map.insert(point(self.goal.y, self.goal.x +1, None)) 
-        self.qt_map.insert(point(self.goal.y, self.goal.x -1, None))  
+        self.qt_map.insert(point(self.goal.y, self.goal.x +1, None))
+        self.qt_map.insert(point(self.goal.y, self.goal.x -1, None))
         self.qt_map.insert(point(self.goal.y +1, self.goal.x+1, None))
         self.qt_map.insert(point(self.goal.y -1, self.goal.x-1, None))
-        self.qt_map.insert(point(self.goal.y-1, self.goal.x +1, None)) 
+        self.qt_map.insert(point(self.goal.y-1, self.goal.x +1, None))
         self.qt_map.insert(point(self.goal.y+1, self.goal.x -1, None)) '''
         # keep the time it took for computation reference
         self.quadtree_time = time.process_time() - t1
@@ -176,13 +176,13 @@ class QFCERRT:
         # replanning settings
         self.danger_zone = danger_zone
 
-            
+
     def search(self) -> list:
         """
         A method which performs RRT-search
 
         Returns:
-            (list): 
+            (list):
                 The path found by RRT, or [-1] if no path was found
         """
         searchtime_start =  time.process_time()
@@ -195,10 +195,10 @@ class QFCERRT:
             self.iterations_completed = 0
             self.search_time =  time.process_time() - searchtime_start
             return self.waypoints
-                    
-        # start searching    
+
+        # start searching
         while i < self.maxit and self.empty_cells:
-            i += 1  
+            i += 1
             # perform sampling process
             sample, index = self.sampleFromEmptys()
             parent = self.sort_collection_for_nearest(sample)
@@ -219,38 +219,38 @@ class QFCERRT:
                     self.iterations_completed = i
                     self.search_time =  time.process_time() - searchtime_start
                     return self.waypoints
-                    
-        # save parameters for failed search                
+
+        # save parameters for failed search
         self.iterations_completed = i
         self.search_time =  time.process_time() - searchtime_start
         print(f'Planner Message: goal not found after {i} iterations complete')
         # return failure value -1
         return [-1]
-    
+
     def GB_FOV_sampler(self):
-        valid_angle = []     
+        valid_angle = []
         while not valid_angle:
-            
-            direction_sample, index = self.sampleFromEmptys() 
-        
+
+            direction_sample, index = self.sampleFromEmptys()
+
             for node in self.node_collection:
                 # include root of tree every time
                 if self.within_FOV(direction_sample, node, self.fov) and self.distance([node.x, node.y], direction_sample) < 2*self.max_size:
                     valid_angle.append(node)
-            
+
         valid_angle.sort(key=lambda e: self.weighted_distance([e.x, e.y], direction_sample), reverse=False)
         parent = valid_angle[0]
         neighbours = valid_angle[1:]
         sample = direction_sample #self.traveller([parent.x, parent.y], direction_sample)
-        
+
         return sample, parent, index, neighbours
-    
+
     def within_FOV(self, point, potential_parent_node, fov):
         node = potential_parent_node
         # include root of tree every time
         if not node.parent and self.weighted_distance(point, [node.x, node.y]) < self.max_x: #OOGA BOOGA
             return True
-        
+
         if not node.parent:
             return False
         else:
@@ -266,7 +266,7 @@ class QFCERRT:
                 angle = np.arccos(cosine_angle)
             except:
                 return False
-            
+
             # check if the points would be in range of the FOV
             boundary = np.pi - fov
             # determine angle to the point is goal-biased
@@ -276,7 +276,7 @@ class QFCERRT:
             if abs(angle) >= boundary and angle < ga + np.pi/2 and angle > ga - np.pi/2:
                 return True
             return False
-        
+
     def point2goalFOV(self, point, node):
         # calculate the angle between 3 points
         a = np.array([node.x, node.y])
@@ -289,16 +289,16 @@ class QFCERRT:
             angle = np.arccos(cosine_angle)
         except:
             return -1
-        
+
         return angle
 
-    
+
     def need2replan(self, new_position: list, new_map: np.ndarray) -> bool:
         """
         Check if the planner needs to perform replanning or not
 
         Args:
-            new_position (list): 
+            new_position (list):
                 The current position of the vehicle
             new_map (np.ndarray):
                 The new map which might have changed from previous planning
@@ -308,15 +308,15 @@ class QFCERRT:
                 True if replanning is necessary, False if not
         """
         # Early exits
-        if not self.waypoints:
+        #if not self.waypoints:
+        #    return True
+
+        if len(self.waypoints) < 1:
             return True
-        
-        if len(self.waypoints) == 1:
-            return True
-        
+
         # perform the same Binary Dilation as on the regular map
-        self.map = binary_dilation(new_map, iterations=self.bd_multi).astype(bool)
-        
+        self.map = new_map #binary_dilation(new_map, iterations=self.bd_multi).astype(bool)
+
         # Determine the closest point in the path to the actual vehicles position [DEPRICATED]
         '''temp_list = self.waypoints
         temp_list.sort(key=lambda e: self.distance(e, new_position), reverse=False)
@@ -324,28 +324,28 @@ class QFCERRT:
         del self.waypoints[0:index]
         print(f'Planner Message: {len(self.waypoints)} waypoints in current path.')'''
         modlist = self.waypoints
-        
+
         # If current position deviates more than 0.5 from expected [DEPRICATED]
         '''if self.distance(new_position, modlist[0]) > 0.5:
             modlist.insert(0, new_position)'''
-        
+
         # Check collisions
         for i in range(len(modlist)-1):
             p1 = modlist[i]
             p2 = modlist[i+1]
             vehicle_distance = round(self.distance(new_position, p2))
-            
+
             # if the point to check is within the danger_zone
             if vehicle_distance < self.danger_zone:
                 # if a collision occurs somewhere in that range
                 if self.collision(p1, p2, round(self.distance(p1, p2))):
                     print(f'Planner Message: replanning')
                     return True
-            
+
         #self.waypoints = modlist
         return False
-    
-    
+
+
     def apply_post_process(self) -> None:
         """
         Performs post processing based on selected mode
@@ -355,13 +355,13 @@ class QFCERRT:
         if self.mode == 1:
             self.waypoints = self.step_by_step_interpolation(self.waypoints)
         if self.mode == 2:
-            #p = self.bezier_tripples(self.waypoints, 10)
-            p = self.some_spline_chad(self.waypoints)
-            self.waypoints = p #self.step_by_step_interpolation(p)
-    
+            p = self.bezier_tripples(self.waypoints, 10)
+            #p = self.some_spline_chad(self.waypoints)
+            self.waypoints = self.step_by_step_interpolation(p)
+
     def some_spline_chad(self, path):
         '''
-        Parametrize x and y over an imaginary third variable, imaginary_time, in order to run 2 interpolations over that 
+        Parametrize x and y over an imaginary third variable, imaginary_time, in order to run 2 interpolations over that
         linearly increasing variable and then combine the x and y from the results to the final curve,
         which then does not have to be linearly increasing but can be non-monotonic
         '''
@@ -371,7 +371,7 @@ class QFCERRT:
         for p in path:
             x_s.append(p[0])
             y_s.append(p[1])
-            
+
         imaginary_time = np.linspace(0,1, len(x_s))
         r = path
         curve = CubicSpline(imaginary_time, r, axis=0, bc_type='clamped') #not-a-knot
@@ -386,7 +386,7 @@ class QFCERRT:
         for p in path:
             x_s.append(p[0])
             y_s.append(p[1])
-            
+
         imaginary_time = np.linspace(0,1, len(x_s))
         r = path
         s2g = round(np.floor(self.distance([self.tree.x, self.tree.y], [self.goal.x, self.goal.y]) / 2))
@@ -394,73 +394,73 @@ class QFCERRT:
         t = np.linspace(np.min(imaginary_time),np.max(imaginary_time),s2g)
         r = curve(t)
         return r
-       
+
     def sampleRandomEmptyNeighbour(self) -> Tuple[list, int, NodeOnTree]:
-        
+
         parent = random.choice(self.node_collection)
         p = [parent.x, parent.y]
         samples = []
         for i in range(5):
-            
+
             [[x, y, s]]  = random.choices(self.empty_cells, self.normalized_scores)
             samples.append([x, y, s])
-            
-        samples.sort(key=lambda e: self.distance([e[0], e[1]], p), reverse=False)  
+
+        samples.sort(key=lambda e: self.distance([e[0], e[1]], p), reverse=False)
         [x, y, s] = samples[0]
         index = self.empty_cells.index([x, y, s])
-        sample = [x, y]     
-        
+        sample = [x, y]
+
         return sample, index, parent
 
-    
+
     def sampleClosest(self)-> Tuple[list, int, NodeOnTree]:
-        
+
         parent = random.choice(self.node_collection)
         p = [parent.x, parent.y]
-        self.empty_cells.sort(key=lambda e: self.distance([e[0], e[1]], p), reverse=False)  
+        self.empty_cells.sort(key=lambda e: self.distance([e[0], e[1]], p), reverse=False)
         [x, y, s] = self.empty_cells[0]
         index = self.empty_cells.index([x, y, s])
-        sample = [x, y]     
-        
+        sample = [x, y]
+
         return sample, index, parent
-    
-    
+
+
     def sort_collection_for_nearest(self, point: list) -> NodeOnTree:
         """
         A method which sorts all existing nodes based on their distance to the desired reference point and returns the closest one
 
         Args:
-            point (list): 
+            point (list):
                 The reference point
 
         Returns:
-            NodeOnTree: 
+            NodeOnTree:
                 The closest existing node to the reference point
         """
-        # Problem is there might be a point which is the closest, but is not collision free. In that case P will never find a valid Parent 
+        # Problem is there might be a point which is the closest, but is not collision free. In that case P will never find a valid Parent
         # because the only valid ever returned was the one which leads to a collision . . .
-        
+
         p = point
         self.node_collection.sort(key=lambda e: self.weighted_distance([e.x, e.y], p), reverse=False) #GAUSS
         return self.node_collection[0]
-    
-    
+
+
     def adoptGoal(self, parent: NodeOnTree) -> None:
         """
-        A method for a node to adopt the goal-node. 
+        A method for a node to adopt the goal-node.
         Sets flag goalWasFound to True.
 
         Args:
-            parent (NodeOnTree): 
+            parent (NodeOnTree):
                 The node that is supposed to adopt the goal
         """
         self.node_collection.append(self.goal)
         self.adoptChild(parent, self.goal)
-        
+
         self.qt.insert(point(self.goal.x, self.goal.y, self.goal))
         self.goalWasFound = True
-        
-    
+
+
     def traceToRoot(self, parent, sample) -> list:
         cp = parent
         points =[sample, [parent.x, parent.y]]
@@ -469,13 +469,13 @@ class QFCERRT:
             points.append([cp.x, cp.y])
         points.append([self.tree.x, self.tree.y])
         return points
-    
-            
+
+
     def __processFreeSpace(self, the_map: np.ndarray, qt: Quadtree) -> None:
         """
         A method which sorts the contours of all objects in map into a Quadtree,
         stores the free space cells in global parameters and their sampling probability
-        
+
         Args:
             the_map (np.ndarray):
                 The map in which to determine the free space in
@@ -486,17 +486,17 @@ class QFCERRT:
         self.cell_scores = []
         # Retrieve only the contours of objects in map
         boundries = find_contours(the_map, level=0.5)
-        
-        # Sort the contours into quadtree 
+
+        # Sort the contours into quadtree
         for b in boundries:
             for p in b:
                 self.qt_map.insert(point(p[0], p[1], None))
-             
+
         new_cells = self.__findEmpty(qt)
         self.empty_cells.extend(new_cells)
-        
+
         all_wh_values = []
-        
+
         # check if there even are empty cells
         if self.empty_cells:
             for e in self.empty_cells:
@@ -504,27 +504,27 @@ class QFCERRT:
             self.max_size = np.sqrt(max(all_wh_values))
             avg_score = round(np.mean(all_wh_values), 2)
             #print("Boosting above: ", avg_score)
-        
+
             # Scoring for non-uniform sampling
             for e in  self.empty_cells:
                 if e[2] >= avg_score: # Trust these cells more, increase sampling probability
                     self.cell_scores.append(e[2]*self.extra_cell_weight)
                 else:
                     self.cell_scores.append(e[2])
-                
+
             self.total_score = np.sum(self.cell_scores)
             self.normalized_scores = []
-        
+
             for e in self.cell_scores:
                 self.normalized_scores.append(e / self.total_score)
-            
+
             self.start_number_of_emptys = len(self.empty_cells)
             print(f'Planner Message: planner has {self.start_number_of_emptys} cells to plan in')
-            
+
         else:
-            print("Planner Message: no cells to plan in") 
-            
-                    
+            print("Planner Message: no cells to plan in")
+
+
     def sampleFromEmptys(self) -> Tuple[list, int]:
         """
         A method which returns a random sample from the set self.empty_cells based
@@ -540,12 +540,12 @@ class QFCERRT:
         index = self.empty_cells.index([x, y, s])
         sample = [x, y]
         return sample, index
-    
-        
+
+
     def __pointInMap(self, point: list) -> int:
         """
         A method to retrieve the data contained in the map to plan in, because X and Y coordinates are flipped compared to the real map
-        
+
         Args:
             point (list):
                 The coordinates of the point to return the value in the occupancy map for
@@ -593,7 +593,7 @@ class QFCERRT:
         search_space = circle(p[0], p[1], r)
         n = self.__findNeighboursInQuadTree(search_space)
         neighbour_nodes = []
-        
+
         for neighbour in n:
             neighbour_nodes.append(neighbour.trait)
         return neighbour_nodes
@@ -615,7 +615,7 @@ class QFCERRT:
         search_space = circle(p[0], p[1], r)
         n = self.__findNeighboursInQuadTree(search_space)
         neighbour_nodes = []
-        
+
         if len(self.node_collection) > self.max_neighbour_found:
             while len(n) < self.max_neighbour_found:
                 r += self.search_radius_increment*self.stepDistance
@@ -631,8 +631,8 @@ class QFCERRT:
         radius = self.stepDistance*0.99
         n = self.findNeighbours(p, radius)
         return len(n), n
-    
-    
+
+
     def plotAllPaths(self, root_of_tree) -> None:
         self.colour_mode_2 = False
         if not root_of_tree:
@@ -663,19 +663,19 @@ class QFCERRT:
                 The list index of the new child from the list of self.empty_cells
 
         Returns:
-            (NodeOnTree): 
+            (NodeOnTree):
                 The newly created child node
         """
         x = sample[0]
         y = sample[1]
-        
-        child = NodeOnTree(x, y) 
+
+        child = NodeOnTree(x, y)
         self.node_collection.append(child)
         self.adoptChild(parent, child)
-        
+
         # sort newly created node into Quadtree dataset
         self.qt.insert(point(child.x, child.y, child))
-        
+
         child.d_parent = parent_distance
         child.d_root = parent.d_root + parent_distance
         index = index_of_empty
@@ -686,14 +686,14 @@ class QFCERRT:
             del self.empty_cells[index]
             del self.normalized_scores[index]
             del self.cell_scores[index]
-        
+
         return child
 
 
     def adoptChild(self, parent: NodeOnTree, child: NodeOnTree) -> None:
         """
         A method to assign a child to a specific parent
-        
+
         Args:
             parent (NodeOnTree):
                 The new parent of the child
@@ -723,10 +723,10 @@ class QFCERRT:
         # terminate early if leads into obstacle
         if self.__pointInMap(end) > 0:
             return True
-        
+
         v_hat = self.__unitVector(start, end)
         point = np.array([0.0, 0.0])
-        
+
         for i in range(distance2check):
             # walk along the v_hat direction, in entire integers
             point[0] = round(start[0] + i * v_hat[0])
@@ -735,31 +735,31 @@ class QFCERRT:
             # check if out-of-bounds for the map
             if point[0] >= self.max_y or point[1] >= self.max_x:
                 return True
-            
+
             # obstacles are True in Map, free nodes are False
             if  self.__pointInMap(point) > 0:
                 return True
-            
+
         return False
 
 
     def __outOfBoundsCorrection(self, point) -> list:
         # check X coord
-        if round(point[0]) >= self.max_y:  
+        if round(point[0]) >= self.max_y:
             point[0] = self.max_y - 1
-            
+
         # check Y coord
-        if round(point[1]) >= self.max_x:  
+        if round(point[1]) >= self.max_x:
             point[1] = self.max_x - 1
-        
+
         # check X coord
-        if round(point[0]) <= 0:  
+        if round(point[0]) <= 0:
             point[0] = 0
-            
+
         # check Y coord
         if round(point[1]) <= 0:
             point[1] = 0
-            
+
         return point
 
 
@@ -784,7 +784,7 @@ class QFCERRT:
         vector = np.array([x, y])
         # Return normalized vector
         normalized_vector = vector / np.linalg.norm(vector)
-        
+
         return normalized_vector
 
 
@@ -816,8 +816,8 @@ class QFCERRT:
             neighbours = self.__findNeighboursInQuadTree(search_space)
 
         return self.__findNearestInSet(neighbours, point)
-    
-    
+
+
     def __findNeighboursInQuadTree(self, search_space: circle) -> list:
         """
         A method which utilizes the quadtrees search functionality to return all entries within the search space
@@ -853,7 +853,7 @@ class QFCERRT:
         for candidate in neighbours:
             candidate_node = candidate.trait
             candidate_distance = self.distance([candidate_node.x, candidate_node.y], [point[0], point[1]])
-            
+
             if candidate_distance <= best_distance:
                 best_distance = candidate_distance
                 best_node = candidate.trait
@@ -867,7 +867,7 @@ class QFCERRT:
             if d <= self.shortestDistance:
                 self.shortestDistance = d
                 self.nearest_node = node
-    
+
 
     def distance(self, nodel: list, point: list) -> float:
         """
@@ -899,16 +899,16 @@ class QFCERRT:
                 A flag which is true if the point had line-of-sight and false if not
         """
         #if self.distance(self.goal, point) <= self.stepDistance and not self.collision(self.goal, point, self.stepDistance):
-        
+
         if not self.collision([self.goal.x, self.goal.y], point, round(self.distance([self.goal.x, self.goal.y], point))) and self.within_FOV(point, self.goal, self.fov): #self.distance([self.goal.x, self.goal.y], point) <= 20:#
             return True
         return False
-    
+
 
     def __resetNearest(self) -> None:
         self.nearest_node = None
         self.shortestDistance = self.maxDistance
-    
+
 
     def retracePath(self, goal: NodeOnTree) -> None:
         """
@@ -926,7 +926,7 @@ class QFCERRT:
             self.pathDistance += self.weighted_distance([current_parent.x, current_parent.y], self.waypoints[0])
             self.waypoints.insert(0, point)
             current_parent = current_parent.parent
-                
+
 
     def __findEmpty(self, the_quad_tree: Quadtree) -> list:
         """
@@ -943,8 +943,8 @@ class QFCERRT:
         empty = []
         # Bladerunner style zoom-in on map
         self.__enhance(the_quad_tree, empty)
-        return empty  
-    
+        return empty
+
 
     def __enhance(self, cell: rectangle, empty: list) -> None:
         """
@@ -960,7 +960,7 @@ class QFCERRT:
         if not cell.points:
             x = cell.boundary.x
             y = cell.boundary.y
-            w = cell.boundary.w 
+            w = cell.boundary.w
             h = cell.boundary.h
             if round(x) < self.max_x and round(y) < self.max_y and round(x) > 0 and round(y) > 0:
                 # Y and X are swapped in this case because they where sorted swapped into the Quadtree to begin with
@@ -968,9 +968,9 @@ class QFCERRT:
                 Statement excludes cells with certain conditions like too small or suspiciously large cells
                 '''
                 if self.valid_empty(x, y, w, h): #and w >= self.stepDistance
-                    
+
                     empty.append([y, x, w*h])
-                    
+
                     if self.plot_enabled:
                         # Flipp flop the coordinates and rectangle dimensions for map plotting
                         a = y
@@ -982,9 +982,9 @@ class QFCERRT:
                         plt.plot([a + c, a + c], [b + d, b - d], 'm', linestyle="--") # ne->se
                         plt.plot([a + c, a - c], [b - d, b - d], 'm', linestyle="--") # se->sw
                         plt.plot([a - c, a - c], [b - d, b + d], 'm', linestyle="--") # sw->nw'''
-            
+
         else:
-            
+
             if cell.has_been_divided:
                 self.__enhance(cell.northeast, empty)
                 self.__enhance(cell.northwest, empty)
@@ -1005,7 +1005,7 @@ class QFCERRT:
             points (np.ndarray):
                 The control points for the Bezier curve
             t (np.ndarray):
-                An incremental position along the curve, between 0 and 1 
+                An incremental position along the curve, between 0 and 1
 
         Returns:
             (list):
@@ -1014,15 +1014,15 @@ class QFCERRT:
         N = len(points)
         curve = np.zeros(2)
         total = 0.0
-        
+
         for i in range(N):
             weight = (t ** i) * ((1 - t) ** (N - 1 - i))
             total += weight
             curve += points[i] * weight
-            
+
         if total != 0.0:
             curve /= total
-        return curve       
+        return curve
 
 
     def bezier_tripples(self, path: list, max_turning_angle_allowed: int) -> list:
@@ -1032,13 +1032,13 @@ class QFCERRT:
         Args:
             path (list):
                 A list of coordinates to follow along and to check
-                
+
             max_turning_angle_allowed (int):
                 The maximum turning angle allowed before Bezier-smoothing is applied
 
         Returns:
             (list):
-                A smoothed list of coordinates 
+                A smoothed list of coordinates
         """
         # interpolate the waypoints in order to strengthen the control points for the Bezier
         #path = self.step_by_step_interpolation(path)
@@ -1066,7 +1066,7 @@ class QFCERRT:
         curve.append(path[len(path)-1])
         #print(curve)
         return curve
-    
+
     def bezier_entire_curve(self, path):
          #p = self.step_by_step_interpolation(path)
          p = path
@@ -1074,8 +1074,8 @@ class QFCERRT:
          t_values = np.linspace(0, 1, round(len(p)))
          b_path = np.array([self.bezier_curve(p_forttran, t) for t in t_values])
          return b_path
-     
-    
+
+
     def interpolate_waypoints(self, waypoints: list) -> list:
         """
         A method to add all middle-points of all points in the list.
@@ -1098,18 +1098,18 @@ class QFCERRT:
             curve.extend([a, b])
         curve.append(wp[-1])
         return curve
-    
-    
+
+
     def step_by_step_interpolation(self, path: list) -> list:
         """
         Interpolates all given points into a series of close-to-three pixels distance apart
 
         Args:
-            path (list): 
+            path (list):
                 A series of points given
 
         Returns:
-            (list): 
+            (list):
                 An interpolated list of points
         """
         curve = []
@@ -1128,7 +1128,7 @@ class QFCERRT:
                 for j in range(len(x_s)):
                     curve.append([x_s[j], y_s[j]])
         return curve
-    
+
     def weighted_distance(self, start, end):
         '''
         Weighted function for Gaussed map, WORK IN PROGRESS
@@ -1139,20 +1139,20 @@ class QFCERRT:
         if d > 1:
             x_s = np.linspace(start[0], end[0], d)
             y_s = np.linspace(start[1], end[1], d)
-            
+
             for i in range(len(x_s)):
-                d_weighted += cost_multiplier * self.costmap[round(y_s[i]), round(x_s[i])]   
+                d_weighted += cost_multiplier * self.costmap[round(y_s[i]), round(x_s[i])]
             return d_weighted
         else:
             # just add the middle point cost
             d_weighted += cost_multiplier * self.costmap[round((start[1] + end[1])/2), round((start[0] + end[0])/2)]
             return d_weighted
-    
+
     def create_costmap(self):
         '''
         Creates a weighted costmap through a Gaussian filter
         '''
-        grid = binary_dilation(self.map, iterations=self.bd_multi).astype(bool) #self.map
+        grid = binary_dilation(self.map, iterations=4).astype(bool) #self.map
         cost_h = 10
         std_div = 5
         gaussed_grid = np.where(grid > 0, cost_h, grid)
