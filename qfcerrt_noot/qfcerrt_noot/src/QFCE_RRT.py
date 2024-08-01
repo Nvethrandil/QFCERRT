@@ -978,10 +978,10 @@ class QFCERRT:
                         c = h
                         d = w
                         #plt.pause(0.01)
-                        plt.plot([a - c, a + c], [b + d, b + d], 'm', linestyle="--") #nw->ne
-                        plt.plot([a + c, a + c], [b + d, b - d], 'm', linestyle="--") # ne->se
-                        plt.plot([a + c, a - c], [b - d, b - d], 'm', linestyle="--") # se->sw
-                        plt.plot([a - c, a - c], [b - d, b + d], 'm', linestyle="--") # sw->nw'''
+                        plt.plot([a - c, a + c], [b + d, b + d], 'c', linestyle="--") #nw->ne
+                        plt.plot([a + c, a + c], [b + d, b - d], 'c', linestyle="--") # ne->se
+                        plt.plot([a + c, a - c], [b - d, b - d], 'c', linestyle="--") # se->sw
+                        plt.plot([a - c, a - c], [b - d, b + d], 'c', linestyle="--") # sw->nw'''
 
         else:
 
@@ -1102,7 +1102,7 @@ class QFCERRT:
 
     def step_by_step_interpolation(self, path: list) -> list:
         """
-        Interpolates all given points into a series of close-to-three pixels distance apart
+        Interpolates all given points into a series of close-to-1 pixels distance apart
 
         Args:
             path (list):
@@ -1117,16 +1117,13 @@ class QFCERRT:
         for i in range(len(path)-1):
             p1 = path[i]
             p2 = path[i+1]
-            # get the amount of 3-pixel steps the distance is dividable by
-            d = round(np.floor(self.distance(p1, p2)/3))
-            if d < 3:
-                #pass
-                curve.append([p1[0], p1[1]])
-            else:
-                x_s = np.linspace(p1[0], p2[0], d)
-                y_s = np.linspace(p1[1], p2[1], d)
-                for j in range(len(x_s)):
-                    curve.append([x_s[j], y_s[j]])
+            d = self.distance(p1, p2)
+            numd = round(d)
+            x_s = np.linspace(p1[0], p2[0], num = numd)
+            y_s = np.linspace(p1[1], p2[1], num = numd)
+            
+            for j in range(len(x_s)):
+                curve.append([x_s[j], y_s[j]])
         return curve
 
     def weighted_distance(self, start, end):

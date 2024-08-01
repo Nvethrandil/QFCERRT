@@ -44,7 +44,7 @@ minimum_lidar_distance = 9
 mode = 2 # which mode to operate in
 danger_zone = 15 # replanning is triggered if collisions might occur this many pixels ahead
 
-bdilation_multiplier =5  #minimum_lidar_distance + noise_margin
+bdilation_multiplier =6  #minimum_lidar_distance + noise_margin
 
 fov = 90
 # Plot settings
@@ -55,11 +55,12 @@ startRegion = plt.Circle((start[0], start[1]), 3*stepsize, color='r', fill=False
 # GAUSS
 cost_h = 10
 std_div = 5
-gaussed_grid = binary_dilation(grid, iterations=bdilation_multiplier).astype(bool)
+
+bd_grid = binary_dilation(grid, iterations=bdilation_multiplier)
+gaussed_grid = binary_dilation(bd_grid, iterations=4).astype(bool)
 gaussed_grid = np.where(gaussed_grid > 0, cost_h, grid)
 gaussed_grid = gaussian_filter(gaussed_grid, sigma=std_div, mode='wrap')
 
-boosted_grid = np.where(grid > 0, cost_h/2, grid)
 #show_grid = np.add(gaussed_grid, boosted_grid)
 show_grid = gaussed_grid
 plt.imshow(show_grid, cmap='plasma') #binary gray_r
