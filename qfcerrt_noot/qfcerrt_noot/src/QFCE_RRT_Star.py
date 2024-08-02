@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 __author__ = 'Noah Otte <nvethrandil@gmail.com>'
-__version__= '2.6'
+__version__= '4.0'
 __license__= 'MIT'
 
 # General Python libraries
@@ -22,15 +22,15 @@ class QFCERRTStar(QFCERRT):
         RRT (RRT):
             The parent class for the RRT algorithm, containing all methods utilized here
     """
-    def __init__(self, map: np.ndarray, 
-                 start: np.ndarray, 
-                 goal: np.ndarray, 
-                 max_iterations: int, 
-                 stepdistance: int, 
+    def __init__(self, map: np.ndarray,
+                 start: np.ndarray,
+                 goal: np.ndarray,
+                 max_iterations: int,
+                 stepdistance: int,
                  plot_enabled: bool,
-                 max_neighbour_found: int, 
-                 bdilation_multiplier: int, 
-                 cell_sizes: list, 
+                 max_neighbour_found: int,
+                 bdilation_multiplier: int,
+                 cell_sizes: list,
                  mode_select: int,
                  danger_zone: int,
                  fov: int
@@ -39,9 +39,9 @@ class QFCERRTStar(QFCERRT):
         Init method for RRT* class
 
         Args:
-            map (np.ndarray): 
+            map (np.ndarray):
                 The map to plan in as a numpy array
-            start (np.ndarray): 
+            start (np.ndarray):
                 The start position in map
             goal (np.ndarray):
                 The goal position in map
@@ -69,8 +69,8 @@ class QFCERRTStar(QFCERRT):
             fov (int):
                 The maximum turning angle which planne paths can have -> the max field-of-view of the randomized points
         """
-        
-        super().__init__(map, 
+
+        super().__init__(map,
                         start,
                         goal,
                         max_iterations,
@@ -88,7 +88,7 @@ class QFCERRTStar(QFCERRT):
         self.goalWasFound = False
 
         self.costmap = self.create_costmap() #GAUSS
-        
+
     def search_rrtstar(self):
         """
         A method to perform RRT* search utilizing quadtree map tesselation
@@ -98,7 +98,7 @@ class QFCERRTStar(QFCERRT):
                 A list of coordinates spanning a close-to-optimal path, or [-1] if no path was found
         """
         searchtime_start =  time.process_time()
-        
+
         # check if the goal is in line-of-sight
         if self.jackpot([self.tree.x, self.tree.y]) is True:
             print(f'Planner Message: goal found at once')
@@ -108,7 +108,7 @@ class QFCERRTStar(QFCERRT):
             self.apply_post_process()
             self.search_time =  time.process_time() - searchtime_start
             return self.waypoints
-        
+
         # determine the maximum number of iterations allowed
         if self.maxit > len(self.empty_cells):
             stop_at = len(self.empty_cells)
@@ -117,7 +117,7 @@ class QFCERRTStar(QFCERRT):
 
         i = 0
         # do while still cells have not been sampled successfully or until maximum iterations are reached
-        while i <= self.maxit:# and self.empty_cells:
+        while i <= self.maxit and self.empty_cells:
             i +=1
             print(i)
             # if the goal was found and half the iterations remain, just optimize
@@ -125,17 +125,17 @@ class QFCERRTStar(QFCERRT):
                 self.optimize_random_cells()
             else:
                 # sample a point and get its parent-candidate
-                #sample, index = self.sampleFromEmptys()
-                sample, parent, index, neighbours = self.GB_FOV_sampler()
-                #parent = self.sort_collection_for_nearest(sample)
+                sample, index = self.sampleFromEmptys()
+                #sample, parent, index, neighbours = self.GB_FOV_sampler()
+                parent = self.sort_collection_for_nearest(sample)
                 weighted_d = round(self.weighted_distance([parent.x, parent.y], sample)) # GAUSS
                 distance = round(self.distance([parent.x, parent.y], sample)) # GAUSS
                 # check if the pair worked, if so make a real node out of it and optimize
                 if not self.collision([parent.x, parent.y], sample, distance):
                     # declare the heritage between child and parent and find the childs neighbours
                     child = self.makeHeritage(parent, sample, index, weighted_d)
-                    #neighbours =  self.node_collection[:self.max_neighbour_found]
-                    
+                    neighbours =  self.node_collection[:self.max_neighbour_found]
+
                     # if the goal was not found yet, check if it is found this time
                     if not self.goalWasFound:
                         if self.jackpot(sample):
@@ -144,15 +144,15 @@ class QFCERRTStar(QFCERRT):
                             self.goal.d_parent = self.weighted_distance(sample, [self.goal.x, self.goal.y]) # GAUSS
                             self.goal.d_root = child.d_root + weighted_d
                             self.goalWasFound = True
-                                
+
                     # optimize the neighbours found
                     if neighbours is not None:
                         if self.goalWasFound:
                             neighbours.append(self.goal)
                         self.__optimizeNeighbours(neighbours)
-                    
 
-        # exit procedures            
+
+        # exit procedures
         if self.goalWasFound:
             # last goal optimization
             #_ = self.sort_collection_for_nearest([self.goal.x, self.goal.y])
@@ -167,12 +167,12 @@ class QFCERRTStar(QFCERRT):
             print(f'Planner Message: no goal found after {i} iterations and {len(self.empty_cells)} cells sampled')
         self.iterations_completed = i
         self.search_time =  time.process_time() - searchtime_start
-        
+
         # return waypoints
         return self.waypoints
     def cowabunga(self):
         #for n in self.node_collection:
-         #   if self.weighted_distance([n.x, n.y], [self.goal.x, self.goal.y]) < 
+         #   if self.weighted_distance([n.x, n.y], [self.goal.x, self.goal.y]) <
         #self.node_collection.sort(key=lambda e: self.weighted_distance([e.x, e.y], [self.goal.x, self.goal.y]), reverse=False)
         #the_best = self.node_collection[:self.max_neighbour_found]
         #self.__optimizeNeighbours(the_best)
@@ -183,8 +183,8 @@ class QFCERRTStar(QFCERRT):
         for subset_node in subset:
             if self.__isBetterDistance(node, subset_node):
                 self.__updateHeritage(subset_node, node.parent, node)
-          
-            
+
+
     def optimize_random_cells(self):
         c = random.choice(self.node_collection)
         self.node_collection.sort(key=lambda e: self.distance([c.x, c.y], [e.x, e.y]), reverse=False)
@@ -192,11 +192,11 @@ class QFCERRTStar(QFCERRT):
         neighbours =  self.node_collection[:self.max_neighbour_found]
         if neighbours is not None:
             self.__optimizeNeighbours(neighbours)
-                
+
     def __updateHeritage(self, new_parent: NodeOnTree, old_parent: NodeOnTree, child: NodeOnTree):
         """
         A method which changes the parent for a given child node
-        
+
         Args:
             new_parent (NodeOnTree):
                 The new parent node to connect the child to
@@ -241,13 +241,13 @@ class QFCERRTStar(QFCERRT):
         """
         start_end_distance = self.weighted_distance([potential_child.x, potential_child.y], [parent.x, parent.y]) #GAUSS
         real_distance = self.distance([potential_child.x, potential_child.y], [parent.x, parent.y])
-        
+
         end_root_distance = parent.d_root
         new_distance = start_end_distance + end_root_distance
-        
+
         collide = self.collision([potential_child.x, potential_child.y], [parent.x, parent.y], round(real_distance))
-        
-        if new_distance < self.best_distance and not collide and self.within_FOV([potential_child.x, potential_child.y], parent, self.fov):
+
+        if new_distance < self.best_distance and not collide:# and self.within_FOV([potential_child.x, potential_child.y], parent, self.fov):
             self.best_distance = new_distance
             potential_child.d_root = new_distance
             potential_child.d_parent = start_end_distance

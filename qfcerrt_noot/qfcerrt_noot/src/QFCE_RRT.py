@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 __author__ = 'Noah Otte <nvethrandil@gmail.com>'
-__version__= '3.1'
+__version__= '4.0'
 __license__= 'MIT'
 
 from typing import Tuple
@@ -536,7 +536,7 @@ class QFCERRT:
             index (int):
                 The index of the entry sampled in self.empty_cells list
         """
-        [[x, y, s]] = random.choices(self.empty_cells)#, self.normalized_scores)
+        [[x, y, s]] = random.choices(self.empty_cells) #, self.normalized_scores)
         index = self.empty_cells.index([x, y, s])
         sample = [x, y]
         return sample, index
@@ -679,13 +679,14 @@ class QFCERRT:
         child.d_parent = parent_distance
         child.d_root = parent.d_root + parent_distance
         index = index_of_empty
-        if index == -1:
-            return child
-        else:
-            # delete this successfull sample from Emptys to prevent re-sampling
-            del self.empty_cells[index]
-            del self.normalized_scores[index]
-            del self.cell_scores[index]
+        #if index == -1:
+            #return child
+        #else:
+
+        # delete this successfull sample from Emptys to prevent re-sampling
+        del self.empty_cells[index]
+        del self.normalized_scores[index]
+        del self.cell_scores[index]
 
         return child
 
@@ -900,7 +901,7 @@ class QFCERRT:
         """
         #if self.distance(self.goal, point) <= self.stepDistance and not self.collision(self.goal, point, self.stepDistance):
 
-        if not self.collision([self.goal.x, self.goal.y], point, round(self.distance([self.goal.x, self.goal.y], point))) and self.within_FOV(point, self.goal, self.fov): #self.distance([self.goal.x, self.goal.y], point) <= 20:#
+        if not self.collision([self.goal.x, self.goal.y], point, round(self.distance([self.goal.x, self.goal.y], point))):# and self.within_FOV(point, self.goal, self.fov): #self.distance([self.goal.x, self.goal.y], point) <= 20:#
             return True
         return False
 
@@ -1121,7 +1122,7 @@ class QFCERRT:
             numd = round(d)
             x_s = np.linspace(p1[0], p2[0], num = numd)
             y_s = np.linspace(p1[1], p2[1], num = numd)
-            
+
             for j in range(len(x_s)):
                 curve.append([x_s[j], y_s[j]])
         return curve
