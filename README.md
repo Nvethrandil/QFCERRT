@@ -61,7 +61,7 @@ danger_zone = 20
 # The field-of-view which is selected for the field-of-view sampler (DEPRICATED)
 fov = 90
 ```
-**mode, danger_zone, fov** are primarily used and were implemented to compensate for difficulties during live hardware testing and can be disabled without affecting the core planner.
+**mode, danger_zone, fov** are primarily used during and were implemented for difficulties during live hardware testing and can be disabled without affecting the core planner.
 ### Execution of planner
 ```python
 # Initialize the planner with all the information
