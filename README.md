@@ -53,6 +53,15 @@ bdilation_multiplier = 2
 ```
 **bdilation_multiplier** should also be adjusted in reference to the map resolution and the safety margins of the desired vehicle. Here a uncertainty of 0.2m in a map of 0.1m/pixel would be accomodated with a **bdilation_multiplier** of 2.
 
+```python
+# Which post-processing mode is supposed to be enabled, 0 for none, 1 for only interpolation and 2 for Bezier + interpolation
+mode = 2
+# ONLY USED DURING LIVE HARDWARE TESTING. The amount of pixels a collision has to be away from the rovers position for it to count as a flawed path and to return True on a need2replan check
+danger_zone = 20
+# The field-of-view which is selected for the field-of-view sampler (DEPRICATED)
+fov = 90
+```
+**mode, danger_zone, fov** are primarily used and were implemented to compensate for difficulties during live hardware testing and can be disabled without affecting the core planner.
 ### Execution of planner
 ```python
 # Initialize the planner with all the information
@@ -66,7 +75,10 @@ planner = QFCE_RRT(
       search_radius_increment_percentage, 
       max_neighbour_found, 
       bdilation_multiplier, 
-      cell_sizes)
+      cell_sizes,
+      mode,
+      danger_zone,
+      fov)
 # Perform the actual search
 path = planner.search()
 # path contains a list of [x,y] coordinates which then can be utilized for navigation
