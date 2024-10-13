@@ -3,6 +3,9 @@
 The planner is a novel approach in reducing computation-time by dividing the occupancy map into a grid of convex cells.
 This approach currently prevents re-sampling to improve speed at the cost of increased failure rate.
 
+The planner running on live-hardware in conjunction with the ![PlannerBridge](https://github.com/Nvethrandil/qfcerrt_bridge_noot) can be seen in 6 test scenarios in the YouTube playlist ![QFCE-RRT* Demonstrations on Sawppy Platform"](https://www.youtube.com/playlist?list=PLZT2yWvQZ9YS3znli-ZZLDZngka0n6A7S).
+
+-
 *This branch still in development and contains a lot of methods which are currently not required by the planner*
 
 
